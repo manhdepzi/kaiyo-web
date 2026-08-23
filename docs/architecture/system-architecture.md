@@ -1,8 +1,8 @@
-# System Architecture — PROPOSED / UNAPPROVED
+# System Architecture — APPROVED V1 BASELINE
 
 ## 1. Decision status
 
-**Document status: PROPOSED — UNAPPROVED.** This document is a production-oriented architecture proposal authorized for review on 2026-08-22. It is not an ADR and does not approve stack versions, cloud vendors, schemas, public APIs/events, SLO targets, roles, or business workflows.
+**Document status: APPROVED V1 BASELINE.** Product Owner delegated selection of the most reasonable options on 2026-08-23. This architecture is approved with D-004–D-007 for Modular Monolith boundaries, runtime family, data authority, provider-neutral topology and D-006 engineering targets. It is not an ADR and does not approve schemas, public APIs/events, concrete providers/accounts, production deployment or destructive actions.
 
 The architecture follows the currently approved constraints:
 
@@ -36,12 +36,11 @@ Related documents:
 
 ### Out of scope pending approval
 
-- Exact Laravel/PHP/Node versions and package selection.
 - Cloud/vendor/product selection, regions and account topology.
 - Database schema, fields, indexes and migrations.
 - Public API/event contracts and webhook payloads.
 - Exact roles/permissions and business rule approval.
-- Numerical SLOs, RTO/RPO, traffic, retention, performance and cost budgets.
+- Legal retention/residency, real business forecast and cost budget beyond the approved D-006 engineering qualification profile.
 - Detailed network CIDRs, infrastructure-as-code and deployment pipeline.
 
 ## 3. Architecture principles
@@ -331,7 +330,11 @@ Schema details, isolation levels, lock scope, replica topology and consistency b
 - AI data access uses allow-listed data classifications and minimization. PII is excluded/redacted unless an approved use case and legal/privacy basis explicitly permits it.
 - Exact threat model, compliance regime, retention, data residency and key-management choices remain approval gaps.
 
-## 12. Deployment and runtime proposal
+## 12. Approved deployment and runtime baseline
+
+- Runtime family: Laravel 13, PHP 8.5, supported Composer 2.x stable, MySQL 8.4 LTS, Redis 8.2 and Node.js 24 LTS, each pinned to a compatible supported patch through manifests/lockfiles.
+- Frontend delivery: Blade SSR with locked compatible Livewire/Alpine/Tailwind packages; critical public content does not depend on client-side rendering.
+- Environment topology: D007-A1 provider-neutral managed production. Concrete providers/accounts remain disabled/unbound until approved.
 
 - Build one immutable application artifact from pinned dependencies; deploy the same revision to web, worker and scheduler roles.
 - Web and worker instances are stateless/replaceable; health checks distinguish process liveness from dependency readiness.
@@ -358,24 +361,24 @@ Numeric targets are intentionally `TBD — approval required`; inventing them wo
 
 | NFR | Proposed architecture control | Verification/evidence | Target/status |
 | --- | --- | --- | --- |
-| Availability | CDN/WAF/LB, multiple stateless web/worker instances, health checks, degraded optional integrations | Failure-injection and availability/load test | Numeric SLO TBD |
-| Horizontal scalability | Stateless web/workers; queue buffering; derived search; object storage | Scale/load test at approved traffic profile | Traffic/concurrency TBD |
-| Performance | Edge caching for approved public responses, query/index review, bounded request work, cache by explicit policy | p95/p99 web and queue benchmarks; query-count/N+1 checks | Budgets TBD |
+| Availability | CDN/WAF/LB, multiple stateless web/worker instances, health checks, degraded optional integrations | Failure-injection and availability/load test | D006-A2: 99.95% monthly |
+| Horizontal scalability | Stateless web/workers; queue buffering; derived search; object storage | 50 RPS sustained/30m, 200 RPS/5m peak, 500 sessions and 50 concurrent checkout attempts | Approved engineering profile; real forecast may raise it |
+| Performance | Edge caching for approved public responses, query/index review, bounded request work, cache by explicit policy | Dynamic read p95 ≤500ms/p99 ≤1000ms; domain command p95 ≤1000ms under D-006 profile; no N+1 | Approved application-controlled budgets |
 | Data integrity | MySQL authority, transactions, constraints, expected-version transitions and immutable snapshots | Migration/constraint/property/concurrency tests | Rules/contracts pending approval |
 | Idempotency | Durable command/event identities and stored outcomes; provider idempotency keys | Duplicate/concurrent/retry tests for every critical flow | Required for critical/retryable writes |
-| Consistency | Synchronous local invariants; asynchronous derived projections with lag/rebuild/reconciliation | Projection lag and rebuild tests; stale-read scenarios | Per-read consistency budgets TBD |
-| Resilience | Timeout, bounded backoff, circuit/degradation and reconciliation for unknown outcomes | Provider outage/timeout/out-of-order tests | Retry/timeout values TBD |
+| Consistency | Synchronous local invariants; asynchronous derived projections with lag/rebuild/reconciliation | Projection lag and rebuild tests; stale-read scenarios | Search freshness ≤5m; critical queue start p95 ≤60s |
+| Resilience | Timeout, bounded backoff, circuit/degradation and reconciliation for unknown outcomes | Provider outage/timeout/out-of-order tests | Concrete adapter values are contract/config; bounded behavior required |
 | Security | WAF defense-in-depth, server-side authorization, least privilege, secret management, secure delivery pipeline | Threat model, SAST/SCA/DAST/config scan and permission tests | No Critical/High unresolved before release |
 | Privacy/PII | Data minimization, redaction, scoped storage/access and AI allow-list | Data-flow review, log/prompt scan, privacy tests | Regime/retention/residency TBD |
 | Auditability | Immutable/restricted critical audit, correlation IDs, config/rule revision references | Trace critical scenario end-to-end | Retention/access TBD |
-| Recoverability | Backups, point-in-time capability where approved, object versioning/lifecycle, tested restore | Restore rehearsal and integrity reconciliation | RPO/RTO TBD |
+| Recoverability | Backups, point-in-time capability where approved, object versioning/lifecycle, tested restore | Restore rehearsal and integrity reconciliation | D006-A2: RPO 15m, RTO 2h |
 | Deployability | Immutable artifact, rolling deployment, controlled migration, backward compatibility and rollback | Deployment/rollback rehearsal | Strategy/environment model TBD |
 | Observability | Logs, metrics, traces, business-integrity signals and owned alerts/runbooks | Synthetic checks and alert-fire exercises | Thresholds/retention TBD |
 | SEO/indexation | Laravel SSR for approved critical public pages; edge cache policy; canonical/meta/schema generation | Rendered HTML, robots/sitemap/canonical/schema and crawler checks | Page inventory/budgets TBD |
-| Accessibility | Server-rendered semantic baseline plus frontend component controls | Automated critical checks and manual keyboard/screen-reader review | Conformance target TBD |
+| Accessibility | Server-rendered semantic baseline plus frontend component controls | Automated critical checks and manual keyboard/screen-reader review | WCAG 2.2 AA |
 | Maintainability | Modular boundaries, thin delivery layer, ports/adapters, architecture tests | Dependency-rule and static-analysis gates | Tooling/version TBD |
-| Search correctness | Search as rebuildable projection; source links and lag visibility | Rebuild, reconciliation and stale-index tests | Freshness target TBD |
-| Queue correctness | At-least-once design, retry-safe handlers, durable idempotency and dead-letter visibility | Crash/retry/duplicate/poison-job tests | Lag/retry targets TBD |
+| Search correctness | Search as rebuildable projection; source links and lag visibility | Rebuild, reconciliation and stale-index tests | Projection freshness ≤5m |
+| Queue correctness | At-least-once design, retry-safe handlers, durable idempotency and dead-letter visibility | Crash/retry/duplicate/poison-job tests | Critical work starts p95 ≤60s; notification work p95 ≤2m |
 | AI safety | Optional adapter, policy/validation, immutable proposal, human approval for high impact, evaluation gates | Dependency test, AI outage E2E, safety/evaluation regression | Use cases/metrics TBD |
 | Cost efficiency | Horizontal scaling and managed/adapter-based components sized to evidence | Cost/load review against approved forecast | Budget TBD |
 
@@ -412,13 +415,13 @@ Every extraction requires an approved ADR covering ownership, contract/versionin
 
 | Decision ID | Required decision | Why it matters | Current status |
 | --- | --- | --- | --- |
-| ARCH-GAP-001 | Approve/change/reject Business Rules Matrix | Determines states, transactions, module actions and tests | OPEN |
-| ARCH-GAP-002 | Exact stack/runtime versions and package policy | Reproducibility, support and security | OPEN |
-| ARCH-GAP-003 | Traffic profile, availability/latency/load targets | Capacity, topology and performance gates | OPEN |
-| ARCH-GAP-004 | RTO/RPO, retention and backup scope | Data topology, backup and restore design | OPEN |
-| ARCH-GAP-005 | Identity model and permission matrix | Security boundary and policy implementation | OPEN |
+| ARCH-GAP-001 | Approve/change/reject Business Rules Matrix | Determines states, transactions, module actions and tests | CLOSED — Step 03 approved |
+| ARCH-GAP-002 | Exact stack/runtime versions and package policy | Reproducibility, support and security | CLOSED BASELINE — exact patches in lockfiles |
+| ARCH-GAP-003 | Traffic profile, availability/latency/load targets | Capacity, topology and performance gates | CLOSED ENGINEERING PROFILE — real forecast may raise target |
+| ARCH-GAP-004 | RTO/RPO, retention and backup scope | Data topology, backup and restore design | PARTIAL — A2/RPO/RTO/technical backup approved; legal retention/residency open |
+| ARCH-GAP-005 | Identity model and permission matrix | Security boundary and policy implementation | CLOSED POLICY — exact permission catalog Step 13 |
 | ARCH-GAP-006 | Database/API/Event contracts and compatibility policy | Persistence and integration implementation | OPEN |
-| ARCH-GAP-007 | Cloud/vendor/region/environment constraints | Concrete network, deployment and operations design | OPEN |
+| ARCH-GAP-007 | Cloud/vendor/region/environment constraints | Concrete network, deployment and operations design | BASELINE CLOSED — provider-neutral A1; concrete binding remains production gate |
 | ARCH-GAP-008 | Search use cases and freshness/consistency requirements | Whether/which search engine is justified | OPEN |
 | ARCH-GAP-009 | External payment/carrier/tax/notification contracts | Adapter failure/idempotency/reconciliation behavior | OPEN |
 | ARCH-GAP-010 | AI use cases, data classes, impact policy and evaluation criteria | Whether AI is needed and how it can operate safely | OPEN |
@@ -438,12 +441,12 @@ Recommended review order:
 
 | Architecture area | Decision (`APPROVE`/`CHANGE`/`REJECT`) | Decision/ADR reference | Approver | Date |
 | --- | --- | --- | --- | --- |
-| Context and container topology |  |  |  |  |
-| Module boundaries/dependencies |  |  |  |  |
-| Data authority/consistency |  |  |  |  |
-| Queue/integration model |  |  |  |  |
-| AI boundary/governance |  |  |  |  |
-| NFR mapping/targets |  |  |  |  |
+| Context and container topology | APPROVE | D-007 A1 provider-neutral baseline | Product Owner delegated decision / Architecture review | 2026-08-23 |
+| Module boundaries/dependencies | APPROVE | Step 03 V1 policy matrix; detailed ownership Step 05 | Product Owner delegated decision / Architecture review | 2026-08-23 |
+| Data authority/consistency | APPROVE | MySQL truth; Redis/search derived | Product Owner delegated decision / Architecture review | 2026-08-23 |
+| Queue/integration model | APPROVE | At-least-once, durable idempotency, reliable dispatch; concrete pattern ADR | Product Owner delegated decision / Architecture review | 2026-08-23 |
+| AI boundary/governance | APPROVE | AI V2, commerce independent | Product Owner delegated decision / Architecture review | 2026-08-23 |
+| NFR mapping/targets | APPROVE WITH EXTERNAL INPUTS | D006-A2 engineering profile; legal retention/residency and provider bindings remain downstream gates | Product Owner delegated decision / Architecture review | 2026-08-23 |
 
 ## 19. Definition of Done status
 
@@ -454,5 +457,5 @@ Recommended review order:
 | NFR mapping produced | PASS | Section 14 maps 20 NFRs to controls and verification |
 | Commerce core independent of AI | PASS (DESIGN) | Dependency direction, forbidden edges and fitness tests explicitly defined |
 | Service extraction evidence/ADR gate | PASS (DESIGN) | Section 15 prohibits extraction without evidence and approved ADR |
-| Architecture approved/final | PENDING | Approval table is empty; open decisions remain |
+| Architecture approved/final | PASS (V1 BASELINE) | Approval table records delegated Product/Architecture decision; concrete contracts/providers remain their numbered downstream gates |
 | Runtime verification | N/A | No executable application exists |

@@ -1,0 +1,436 @@
+openapi: 3.1.0
+info:
+  title: Kaiyo Web API
+  version: 1.0.0
+  license:
+    name: UNLICENSED
+    identifier: LicenseRef-Proprietary
+  description: >-
+    Approved V1 contract skeleton. Provider-specific callbacks and feature details remain
+    disabled until their named contracts are approved. Internal ORM/database models are not schemas.
+servers:
+  - url: /api/v1
+    description: Same-origin V1 API
+tags:
+  - name: Catalog
+    description: Public sellable product and variant presentation DTOs.
+  - name: Search
+    description: Replaceable public search adapter results.
+  - name: Cart
+    description: Guest or authenticated advisory cart operations.
+  - name: Checkout
+    description: Authoritative order placement orchestration.
+  - name: Orders
+    description: Authorized order reads and controlled commands.
+  - name: Quotes
+    description: Guest/customer quotation lifecycle operations.
+paths:
+  /catalog/products:
+    get:
+      tags: [Catalog]
+      summary: List public products
+      operationId: listProducts
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/PageAfter'
+        - name: filter[category]
+          in: query
+          schema: { type: string }
+        - name: filter[brand]
+          in: query
+          schema: { type: string }
+        - name: sort
+          in: query
+          schema: { type: string, enum: [name, -name, newest, -newest] }
+      responses:
+        '200':
+          description: Product summaries
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ProductCollection' }
+        '422': { $ref: '#/components/responses/ValidationProblem' }
+  /catalog/products/{productId}:
+    get:
+      tags: [Catalog]
+      summary: Get a public product
+      operationId: getProduct
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/ProductId'
+      responses:
+        '200':
+          description: Public product DTO
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ProductResponse' }
+        '404': { $ref: '#/components/responses/NotFoundProblem' }
+  /search:
+    get:
+      tags: [Search]
+      summary: Search public catalog content
+      operationId: searchCatalog
+      security: []
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema: { type: string, minLength: 1, maxLength: 200 }
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/PageAfter'
+      responses:
+        '200':
+          description: Search results backed by replaceable adapter
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ProductCollection' }
+        '422': { $ref: '#/components/responses/ValidationProblem' }
+  /carts/current:
+    get:
+      tags: [Cart]
+      summary: Get the current cart
+      operationId: getCurrentCart
+      security: [{ cookieAuth: [] }, { guestAccess: [] }]
+      responses:
+        '200':
+          description: Current guest/customer cart
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CartResponse' }
+        '404': { $ref: '#/components/responses/NotFoundProblem' }
+  /carts/current/lines:
+    post:
+      tags: [Cart]
+      summary: Add or update a cart line
+      operationId: putCartLine
+      security: [{ cookieAuth: [] }, { guestAccess: [] }]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PutCartLineRequest' }
+      responses:
+        '200':
+          description: Updated cart
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CartResponse' }
+        '409': { $ref: '#/components/responses/ConflictProblem' }
+        '422': { $ref: '#/components/responses/ValidationProblem' }
+  /checkout/orders:
+    post:
+      tags: [Checkout]
+      summary: Place an authoritative order
+      operationId: placeOrder
+      security: [{ cookieAuth: [] }, { guestAccess: [] }]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PlaceOrderRequest' }
+      responses:
+        '201':
+          description: Authoritative Pending order created
+          headers:
+            Location: { schema: { type: string } }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OrderResponse' }
+        '409': { $ref: '#/components/responses/ConflictProblem' }
+        '422': { $ref: '#/components/responses/ValidationProblem' }
+  /orders/{orderId}:
+    get:
+      tags: [Orders]
+      summary: Get an authorized order
+      operationId: getOrder
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/OrderId'
+      responses:
+        '200':
+          description: Own/scoped order DTO
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OrderResponse' }
+        '401': { $ref: '#/components/responses/AuthenticationProblem' }
+        '404': { $ref: '#/components/responses/NotFoundProblem' }
+  /orders/{orderId}/cancellation-requests:
+    post:
+      tags: [Orders]
+      summary: Request order cancellation
+      operationId: requestOrderCancellation
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/OrderId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [reason]
+              properties:
+                reason: { type: string, minLength: 1, maxLength: 1000 }
+      responses:
+        '201':
+          description: Cancellation request recorded; order is not necessarily cancelled
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OperationResponse' }
+        '409': { $ref: '#/components/responses/ConflictProblem' }
+        '422': { $ref: '#/components/responses/ValidationProblem' }
+  /quotes:
+    post:
+      tags: [Quotes]
+      summary: Create a quote draft or request
+      operationId: createQuoteDraft
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateQuoteRequest' }
+      responses:
+        '201':
+          description: Quote draft/request created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/QuoteResponse' }
+        '422': { $ref: '#/components/responses/ValidationProblem' }
+  /quotes/{quoteId}:
+    get:
+      tags: [Quotes]
+      summary: Get an authorized quote
+      operationId: getQuote
+      security: [{ cookieAuth: [] }, { guestAccess: [] }]
+      parameters:
+        - $ref: '#/components/parameters/QuoteId'
+      responses:
+        '200':
+          description: Authorized quote DTO
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/QuoteResponse' }
+        '404': { $ref: '#/components/responses/NotFoundProblem' }
+  /quotes/{quoteId}/submit:
+    post:
+      tags: [Quotes]
+      summary: Submit a quote draft
+      operationId: submitQuote
+      security: [{ cookieAuth: [] }, { guestAccess: [] }]
+      parameters:
+        - $ref: '#/components/parameters/QuoteId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/CsrfToken'
+      responses:
+        '200':
+          description: Quote moved to Submitted
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/QuoteResponse' }
+        '409': { $ref: '#/components/responses/ConflictProblem' }
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: kaiyo_session
+      description: Secure HttpOnly first-party session; mutation also requires CSRF token.
+    guestAccess:
+      type: apiKey
+      in: cookie
+      name: kaiyo_guest
+      description: Opaque HttpOnly guest cart/quote identity; grants no customer/company/order access.
+  parameters:
+    PageSize:
+      name: page[size]
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+    PageAfter:
+      name: page[after]
+      in: query
+      schema: { type: string, maxLength: 2048 }
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema: { type: string, minLength: 16, maxLength: 128 }
+    CsrfToken:
+      name: X-CSRF-TOKEN
+      in: header
+      required: true
+      schema: { type: string }
+    ProductId: { name: productId, in: path, required: true, schema: { $ref: '#/components/schemas/PublicId' } }
+    OrderId: { name: orderId, in: path, required: true, schema: { $ref: '#/components/schemas/PublicId' } }
+    QuoteId: { name: quoteId, in: path, required: true, schema: { $ref: '#/components/schemas/PublicId' } }
+  schemas:
+    PublicId: { type: string, pattern: '^[0-9A-HJKMNP-TV-Z]{26}$' }
+    Money:
+      type: object
+      additionalProperties: false
+      required: [amount, currency]
+      properties:
+        amount: { type: string, pattern: '^[0-9]+$' }
+        currency: { type: string, const: VND }
+    Quantity: { type: string, pattern: '^(0|[1-9][0-9]*)(\.[0-9]{1,4})?$' }
+    Resource:
+      type: object
+      required: [id, type, attributes]
+      properties:
+        id: { $ref: '#/components/schemas/PublicId' }
+        type: { type: string }
+        attributes: { type: object }
+    Meta:
+      type: object
+      required: [correlation_id]
+      properties:
+        correlation_id: { $ref: '#/components/schemas/PublicId' }
+        page_size: { type: integer }
+        has_more: { type: boolean }
+    ProductResource:
+      allOf:
+        - $ref: '#/components/schemas/Resource'
+        - type: object
+          properties:
+            type: { const: product }
+            attributes:
+              type: object
+              additionalProperties: false
+              required: [slug, name]
+              properties:
+                slug: { type: string }
+                name: { type: string }
+                brand_name: { type: [string, 'null'] }
+                presentation_price: { oneOf: [{ $ref: '#/components/schemas/Money' }, { type: 'null' }] }
+                availability: { type: string, enum: [available, unavailable, unknown] }
+    ProductResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data: { $ref: '#/components/schemas/ProductResource' }
+        meta: { $ref: '#/components/schemas/Meta' }
+    ProductCollection:
+      type: object
+      required: [data, meta]
+      properties:
+        data: { type: array, items: { $ref: '#/components/schemas/ProductResource' } }
+        links:
+          type: object
+          properties: { next: { type: [string, 'null'] } }
+        meta: { $ref: '#/components/schemas/Meta' }
+    PutCartLineRequest:
+      type: object
+      additionalProperties: false
+      required: [variant_id, quantity]
+      properties:
+        variant_id: { $ref: '#/components/schemas/PublicId' }
+        quantity: { $ref: '#/components/schemas/Quantity' }
+    CartResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data: { $ref: '#/components/schemas/Resource' }
+        meta: { $ref: '#/components/schemas/Meta' }
+    AddressInput:
+      type: object
+      additionalProperties: false
+      required: [recipient_name, address_line_1, country_code]
+      properties:
+        recipient_name: { type: string, minLength: 1, maxLength: 200 }
+        company_name: { type: [string, 'null'], maxLength: 255 }
+        tax_code: { type: [string, 'null'], maxLength: 64 }
+        address_line_1: { type: string, minLength: 1, maxLength: 500 }
+        address_line_2: { type: [string, 'null'], maxLength: 500 }
+        locality: { type: [string, 'null'], maxLength: 160 }
+        subdivision: { type: [string, 'null'], maxLength: 160 }
+        postal_code: { type: [string, 'null'], maxLength: 32 }
+        country_code: { type: string, pattern: '^[A-Z]{2}$' }
+        phone: { type: [string, 'null'], maxLength: 32 }
+    PlaceOrderRequest:
+      type: object
+      additionalProperties: false
+      required: [cart_id, shipping_address, billing_address, shipping_method, payment_method]
+      properties:
+        cart_id: { $ref: '#/components/schemas/PublicId' }
+        shipping_address: { $ref: '#/components/schemas/AddressInput' }
+        billing_address: { $ref: '#/components/schemas/AddressInput' }
+        shipping_method: { type: string, maxLength: 100 }
+        payment_method: { type: string, enum: [cod, bank_transfer, online_gateway] }
+        invoice_requested: { type: boolean, default: false }
+    OrderResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data: { $ref: '#/components/schemas/Resource' }
+        meta: { $ref: '#/components/schemas/Meta' }
+    QuoteLineInput:
+      type: object
+      additionalProperties: false
+      required: [variant_id, quantity]
+      properties:
+        variant_id: { $ref: '#/components/schemas/PublicId' }
+        quantity: { $ref: '#/components/schemas/Quantity' }
+    CreateQuoteRequest:
+      type: object
+      additionalProperties: false
+      required: [contact_name, contact_email, lines]
+      properties:
+        company_name: { type: [string, 'null'], maxLength: 255 }
+        contact_name: { type: string, minLength: 1, maxLength: 200 }
+        contact_email: { type: string, format: email, maxLength: 320 }
+        contact_phone: { type: [string, 'null'], maxLength: 32 }
+        lines: { type: array, minItems: 1, maxItems: 200, items: { $ref: '#/components/schemas/QuoteLineInput' } }
+        note: { type: [string, 'null'], maxLength: 4000 }
+    QuoteResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data: { $ref: '#/components/schemas/Resource' }
+        meta: { $ref: '#/components/schemas/Meta' }
+    OperationResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data: { $ref: '#/components/schemas/Resource' }
+        meta: { $ref: '#/components/schemas/Meta' }
+    Problem:
+      type: object
+      required: [type, title, status, code, correlation_id]
+      properties:
+        type: { type: string, format: uri-reference }
+        title: { type: string }
+        status: { type: integer, minimum: 400, maximum: 599 }
+        code: { type: string }
+        detail: { type: string }
+        instance: { type: string, format: uri-reference }
+        correlation_id: { $ref: '#/components/schemas/PublicId' }
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items: { type: string }
+  responses:
+    ValidationProblem:
+      description: Validation failed
+      content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } }
+    ConflictProblem:
+      description: State, price, availability or idempotency conflict
+      content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } }
+    AuthenticationProblem:
+      description: Authentication required
+      content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } }
+    NotFoundProblem:
+      description: Missing or non-disclosable resource
+      content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } }

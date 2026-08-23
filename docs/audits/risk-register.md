@@ -2,40 +2,36 @@
 
 ## 1. Assessment basis
 
-This register records risks evidenced by the repository audit on 2026-08-22. Severity and likelihood are qualitative triage aids, not release acceptance thresholds or invented business settings. Any acceptance/waiver requires an authorized owner and recorded decision.
-
-- Severity: **Critical**, **High**, **Medium**, **Low** based on potential integrity, security, delivery or operational impact.
-- Likelihood: **High**, **Medium**, **Low** based on the current repository evidence.
-- Status: all risks below are **OPEN** because no mitigation evidence exists yet.
+- Updated: 2026-08-23 after Architecture Specification v1.1, Promptbook v2.0 and GitHub baseline were added.
+- Severity/likelihood are qualitative triage, not invented release thresholds.
+- `OPEN` requires mitigation evidence; `CLOSED` records resolved historical findings; risk acceptance requires an authorized owner and expiry/review date.
 
 ## 2. Risks
 
-| ID | Risk | Evidence | Severity | Likelihood | Mitigation / exit evidence | Dependency/owner role | Status |
+| ID | Risk | Evidence | Severity | Likelihood | Mitigation / exit evidence | Owner role | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| R-001 | Application work may invent requirements or contracts | No approved Product Requirements, ADRs, Architecture Specification, DB/API/Event contracts | Critical | High | Approved, versioned source-of-truth set with resolved conflicts | Product + Architecture | OPEN |
-| R-002 | Stack/version and supply-chain posture are undefined | No Composer/npm manifests or lockfiles; no Laravel/PHP/Node evidence | High | High | Approved stack/version decision, reproducible manifests/lockfiles and dependency/security scan | Architecture + Engineering | OPEN |
-| R-003 | Data integrity and commerce transaction safety cannot be established | No schema, migrations, constraints, transactions or tests | Critical | High | Approved data contracts; MySQL schema; constraints/indexes; transaction, race and idempotency tests | Architecture + Data/Engineering | OPEN |
-| R-004 | Unauthorized access is possible once features are added without an approved authorization model | No auth implementation or approved RBAC matrix | Critical | High | Approved auth/RBAC rules, server-side policies/middleware and permission tests | Product + Security + Engineering | OPEN |
-| R-005 | Defects can enter undetected | No automated tests, runner configuration or CI | High | High | Risk-based test suites and required CI gates passing | Engineering | OPEN |
-| R-006 | Deployments may be non-repeatable or non-recoverable | No CI/CD, environment definition, deployment or rollback runbook | High | High | Reproducible build/deploy pipeline and verified rollback runbook | Platform/Operations | OPEN |
-| R-007 | Data loss recovery is unverified | No database/storage implementation or backup/restore evidence | Critical | Medium | Approved backup policy and successful restore rehearsal evidence | Operations + Data | OPEN |
-| R-008 | Production failures may go unnoticed | No monitoring, alerting or incident runbook | High | High | Active telemetry/alerts with ownership and tested response path | Operations | OPEN |
-| R-009 | SEO-critical pages may be non-indexable | No rendering layer, routes, metadata or schema checks | High | Medium | Approved SEO page inventory, SSR implementation and indexation/schema verification | Product + Web Engineering | OPEN |
-| R-010 | Performance regressions and N+1 queries may remain hidden | No code, schema, access paths, budgets or load tests | High | Medium | Approved budgets; query/index review; profiling and load-test evidence | Product + Engineering | OPEN |
-| R-011 | Queue/integration retries could duplicate critical writes | No async/external contracts, timeout/backoff/idempotency design or tests | Critical | Medium | Approved contracts and retry-safe implementation with idempotency/concurrency tests | Architecture + Engineering | OPEN |
-| R-012 | Future AI integration could couple into commerce critical paths | Governance rule exists, but no module ADR or automated dependency guard | Critical | Medium | Approved boundary ADR; commerce module has no AI dependency; architecture test; AI evaluations where applicable | Architecture + AI/Commerce Engineering | OPEN |
-| R-013 | Secrets or PII handling may be inconsistent | Secrets policy exists, but no environment/config/logging implementation or scan | High | Medium | Approved secret mechanism, redaction, safe example config and security scan | Security + Engineering | OPEN |
-| R-014 | Accessibility failures may be discovered late | No UI, accessibility target or test setup | Medium | Medium | Approved target and critical automated/manual accessibility checks | Product + Web Engineering | OPEN |
-| R-015 | Repository changes lack durable history/collaboration baseline | Local Git has no commits and no remote | Medium | High | Approved remote/visibility, protected default branch and initial reviewed commit | Repository owner | OPEN |
+| R-001 | Implementation may proceed without approved critical decisions/contracts | PRD/scope v0.1 and D-001–D-003 are approved, but D-004–D-007 and Steps 03–10 remain open | Critical | High | Approved decision records and reconciled rules/architecture/contracts | Product + Architecture | OPEN |
+| R-002 | Stack/version and supply-chain posture remain unproven | Proposed stack only; no manifests/lockfiles/runtime | High | High | Approved ADRs, reproducible manifests/lockfiles and dependency/security scan | Architecture + Engineering | OPEN |
+| R-003 | Data integrity/commerce transaction model is undefined | No approved schema/constraints/locks/migrations | Critical | High | Approved rules, ERD/schema/index plan and transaction/concurrency tests | Architecture + Data/Engineering | OPEN |
+| R-004 | Authorization scope may be implemented inconsistently | Example roles exist but D-005/permission matrix is open | Critical | High | Approved ownership/permission matrix, server policies and permission tests | Product + Security | OPEN |
+| R-005 | Draft lifecycle vocabulary conflicts with source specification | Quote/order states differ between specification and proposed rules | Critical | High | Step 03 reconciliation and Product Owner approval before schema/code | Product + Architecture | OPEN |
+| R-006 | Defects can enter without automation | No test runner/suites or CI workflow | High | High | Step 49 strategy bootstrapped with Step 11 CI and per-module suites | Engineering | OPEN |
+| R-007 | Deployment/rollback is not reproducible | No application build, environments or pipeline | High | High | Reproducible CI/CD and verified deployment/rollback runbook | Platform/Operations | OPEN |
+| R-008 | Backup/restore capability is unknown | No DB/storage infrastructure or drill | Critical | Medium | D-006 targets, DR plan and successful integrity-checked restore drill | Operations + Data | OPEN |
+| R-009 | Failures may be invisible | No runtime monitoring, alerts or SLO targets | High | High | D-006 plus active telemetry/owned alert/runbook exercises | Operations | OPEN |
+| R-010 | SEO/accessibility requirements may be missed during implementation | Requirements exist, but no page inventory/rendered UI/targets | High | Medium | Approved PRD/page inventory/target and automated/manual checks | Product + Web | OPEN |
+| R-011 | Performance/N+1 issues may emerge late | No runtime/data/query plans or numeric budgets | High | Medium | D-006 budgets, index/query review and realistic load evidence | Product + Engineering | OPEN |
+| R-012 | Retryable integration writes may duplicate effects | No approved event/provider contracts or implementation | Critical | Medium | Approved contracts, durable idempotency/reconciliation and failure tests | Architecture + Engineering | OPEN |
+| R-013 | Future AI could couple into critical commerce | Design prohibits it, but no runtime dependency guard exists | Critical | Low for V1 / Medium for V2 | V2 approval, dependency tests and AI-disabled commerce E2E | Architecture + AI/Commerce | OPEN |
+| R-014 | Secrets/PII handling is policy-only | No environment/logging/upload/provider implementation | High | Medium | Approved secret/privacy controls, redaction and security scans/tests | Security + Engineering | OPEN |
+| R-015 | Repository lacked durable remote/history | GitHub origin and initial commit `7fb65ca` now exist | Medium | Resolved | Remote/main verification completed | Repository owner | CLOSED |
+| R-016 | Binary source documents are difficult to review/diff | Product/specification truth currently resides in DOCX | Medium | Medium | Approved normalized Markdown PRD/rules/contracts with traceability and source hashes | Product + Architecture | OPEN |
+| R-017 | Provider/environment choices could be embedded prematurely | D-007 is open; no ADR/contracts | High | Medium | Keep ports/adapters; approve ADR/contracts/config before integration code | Architecture + Security/Operations | OPEN |
 
-## 3. Priority dependency chain
+## 3. Priority chain
 
-The following ordering reflects blockers, not permission to implement:
-
-1. Resolve R-001 before application scaffolding or feature design.
-2. Resolve design portions of R-002, R-003 and R-004 before implementing runtime/data/auth foundations.
-3. Establish R-005 controls alongside the first executable code, not after feature accumulation.
-4. Address R-006 through R-014 according to the approved release scope and Global DoD before production release.
-5. Resolve R-012 before introducing any AI runtime dependency or AI write action.
-
-See [Dependency Roadmap](./dependency-roadmap.md) for gated sequencing.
+1. Close R-001 and R-005 through D-004–D-007 and Steps 03–10 before schema or feature implementation.
+2. Resolve design portions of R-002–R-004, R-012 and R-017 through Steps 04–10.
+3. Establish R-006, R-009 and security controls with the first executable foundation, not after features.
+4. Verify R-007–R-014 against Global DoD before V1 production launch.
+5. Reassess R-013 and rerun Steps 48–55 before enabling any V2 AI capability.

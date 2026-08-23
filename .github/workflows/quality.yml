@@ -1,0 +1,57 @@
+name: quality
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  application:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_DATABASE: kaiyo_test
+          MYSQL_USER: kaiyo
+          MYSQL_PASSWORD: test-only
+          MYSQL_ROOT_PASSWORD: root-test-only
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost"
+          --health-interval=10s --health-timeout=5s --health-retries=10
+      redis:
+        image: redis:8.2-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s --health-timeout=5s --health-retries=10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: mbstring, intl, pdo_mysql, redis
+          coverage: none
+          tools: composer:v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: composer install --no-interaction --prefer-dist --no-progress
+      - run: npm ci
+      - run: cp .env.example .env
+      - run: php artisan key:generate
+      - run: composer quality
+      - run: npm run build
+      - run: npx --yes @redocly/cli@2.47.0 lint docs/api/openapi.yaml --extends=recommended
+      - run: composer audit --locked --no-interaction
+      - run: npm audit --audit-level=high

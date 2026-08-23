@@ -1,0 +1,133 @@
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../**/*.blade.php';
+@source '../**/*.js';
+
+@theme inline {
+    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+        'Segoe UI Symbol', 'Noto Color Emoji';
+
+    --color-canvas: var(--kaiyo-canvas);
+    --color-surface: var(--kaiyo-surface);
+    --color-surface-muted: var(--kaiyo-surface-muted);
+    --color-ink: var(--kaiyo-ink);
+    --color-ink-muted: var(--kaiyo-ink-muted);
+    --color-line: var(--kaiyo-line);
+    --color-brand: var(--kaiyo-brand);
+    --color-brand-hover: var(--kaiyo-brand-hover);
+    --color-brand-soft: var(--kaiyo-brand-soft);
+    --color-on-brand: var(--kaiyo-on-brand);
+    --color-on-brand-soft: var(--kaiyo-on-brand-soft);
+    --color-success: var(--kaiyo-success);
+    --color-success-soft: var(--kaiyo-success-soft);
+    --color-on-success: var(--kaiyo-on-success);
+    --color-warning: var(--kaiyo-warning);
+    --color-warning-soft: var(--kaiyo-warning-soft);
+    --color-on-warning: var(--kaiyo-on-warning);
+    --color-danger: var(--kaiyo-danger);
+    --color-danger-soft: var(--kaiyo-danger-soft);
+    --color-on-danger: var(--kaiyo-on-danger);
+    --color-on-danger-strong: var(--kaiyo-on-danger-strong);
+    --color-info: var(--kaiyo-info);
+    --color-info-soft: var(--kaiyo-info-soft);
+    --color-on-info: var(--kaiyo-on-info);
+    --color-focus: var(--kaiyo-focus);
+
+    --radius-control: 0.625rem;
+    --radius-panel: 1rem;
+    --shadow-panel: 0 18px 50px rgb(15 23 42 / 0.12);
+    --shadow-focus: 0 0 0 3px color-mix(in srgb, var(--kaiyo-focus) 32%, transparent);
+}
+
+:root {
+    color-scheme: light;
+    --kaiyo-canvas: #f4f7fb;
+    --kaiyo-surface: #ffffff;
+    --kaiyo-surface-muted: #e8eef5;
+    --kaiyo-ink: #101828;
+    --kaiyo-ink-muted: #475467;
+    --kaiyo-line: #98a2b3;
+    --kaiyo-brand: #075985;
+    --kaiyo-brand-hover: #0c4a6e;
+    --kaiyo-brand-soft: #cffafe;
+    --kaiyo-on-brand: #ffffff;
+    --kaiyo-on-brand-soft: #164e63;
+    --kaiyo-success: #166534;
+    --kaiyo-success-soft: #dcfce7;
+    --kaiyo-on-success: #14532d;
+    --kaiyo-warning: #92400e;
+    --kaiyo-warning-soft: #fef3c7;
+    --kaiyo-on-warning: #78350f;
+    --kaiyo-danger: #991b1b;
+    --kaiyo-danger-soft: #fee2e2;
+    --kaiyo-on-danger: #7f1d1d;
+    --kaiyo-on-danger-strong: #ffffff;
+    --kaiyo-info: #1e40af;
+    --kaiyo-info-soft: #dbeafe;
+    --kaiyo-on-info: #1e3a8a;
+    --kaiyo-focus: #0e7490;
+}
+
+.theme-dark {
+    color-scheme: dark;
+    --kaiyo-canvas: #07111f;
+    --kaiyo-surface: #0d1b2a;
+    --kaiyo-surface-muted: #16283b;
+    --kaiyo-ink: #f8fafc;
+    --kaiyo-ink-muted: #bac6d6;
+    --kaiyo-line: #526176;
+    --kaiyo-brand: #22d3ee;
+    --kaiyo-brand-hover: #67e8f9;
+    --kaiyo-brand-soft: #164e63;
+    --kaiyo-on-brand: #082f49;
+    --kaiyo-on-brand-soft: #cffafe;
+    --kaiyo-success: #4ade80;
+    --kaiyo-success-soft: #14532d;
+    --kaiyo-on-success: #dcfce7;
+    --kaiyo-warning: #fbbf24;
+    --kaiyo-warning-soft: #78350f;
+    --kaiyo-on-warning: #fef3c7;
+    --kaiyo-danger: #f87171;
+    --kaiyo-danger-soft: #7f1d1d;
+    --kaiyo-on-danger: #fee2e2;
+    --kaiyo-on-danger-strong: #450a0a;
+    --kaiyo-info: #60a5fa;
+    --kaiyo-info-soft: #1e3a8a;
+    --kaiyo-on-info: #dbeafe;
+    --kaiyo-focus: #67e8f9;
+}
+
+@layer base {
+    html {
+        font-family: var(--font-sans);
+        text-rendering: optimizeLegibility;
+    }
+
+    body {
+        background: var(--kaiyo-canvas);
+        color: var(--kaiyo-ink);
+    }
+
+    :focus-visible {
+        outline: 3px solid var(--kaiyo-focus);
+        outline-offset: 3px;
+    }
+
+    ::selection {
+        background: var(--kaiyo-brand-soft);
+        color: var(--kaiyo-on-brand-soft);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}

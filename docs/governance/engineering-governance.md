@@ -1,5 +1,9 @@
 # AI Engineering Governance
 
+**Status:** Active governance
+
+**Revalidated against:** AI Enterprise Full-Stack Engineering Promptbook v2.0 on 2026-08-23
+
 ## 1. Mục đích và phạm vi
 
 Tài liệu này quy định cách AI coding agent làm việc trong repository. Tài liệu không cấp cho agent quyền tự tạo business rule, dữ liệu, permission, public contract hoặc workflow. Mọi thay đổi phải có căn cứ, có phạm vi rõ ràng và có bằng chứng kiểm chứng.
@@ -39,6 +43,19 @@ Khi thiếu hoặc xung đột thông tin cần thiết, agent phải:
 
 Agent vẫn có thể hoàn thành các phần độc lập, an toàn và không phụ thuộc vào gap, nhưng phải tách boundary rõ ràng và không thể hiện phần bị chặn là đã hoàn thành.
 
+## 3.1 Approval evidence
+
+Một nội dung chỉ được coi là **approved** khi có record xác định được phạm vi quyết định, người/nhóm có thẩm quyền, ngày quyết định và revision/artifact bị ảnh hưởng. Yêu cầu “tiếp tục làm” hoặc sự tồn tại của một draft không tự động phê duyệt business rule, schema, permission, contract hay destructive workflow.
+
+Approval có phạm vi: quyết định cho một rule/operation không được suy rộng sang rule/operation khác. Khi approval thay đổi, các artifact phụ thuộc phải quay lại trạng thái revalidate trước khi tiếp tục.
+
+## 3.2 Artifact dependency gate
+
+- Mỗi Promptbook step chỉ được bắt đầu implementation khi artifact dependency của step trước đã đạt DoD áp dụng và các approval bắt buộc đã có evidence.
+- Artifact ở trạng thái proposed, unapproved, failed hoặc pending không mở gate cho code/migration/public contract phụ thuộc.
+- Cross-cutting test, security, observability, CI/CD và disaster-recovery controls phải được bootstrap sớm, cập nhật cùng từng module và chỉ đóng gate bằng release evidence.
+- Nếu thứ tự đánh số task mâu thuẫn dependency kỹ thuật, giữ Step ID để truy vết nhưng thực thi theo dependency; ghi rõ lý do và gate chưa đóng.
+
 ## 4. Operating loop bắt buộc
 
 ### OBSERVE
@@ -63,6 +80,7 @@ Agent vẫn có thể hoàn thành các phần độc lập, an toàn và không
 - Critical writes phải transaction-safe; retryable writes phải idempotent.
 - Queue jobs phải retry-safe; external API phải có timeout và backoff.
 - Không đưa AI/LLM vào critical checkout, payment hoặc inventory path.
+- AI Platform là bounded context tùy chọn và độc lập. Catalog, cart, checkout, quotation thủ công, order, payment và inventory phải hoạt động khi toàn bộ AI feature flags tắt hoặc mọi LLM provider outage.
 - AI tool write action phải qua policy, validation và idempotency; high-impact action cần human approval.
 - Không hard-code prompts, model IDs, provider keys, thresholds hoặc business settings.
 - Modular Monolith là mặc định; không tách microservice nếu chưa có ADR phê duyệt.
@@ -172,3 +190,18 @@ Mỗi mục phải được báo cáo là **PASS**, **FAIL**, **PENDING** hoặc
 ## 11. Tài liệu task chuẩn
 
 Mọi AI task phải được khởi tạo và bàn giao bằng [AI Task Template](./ai-task-template.md). Template là record tối thiểu; team có thể bổ sung thông tin nhưng không được bỏ các mục bắt buộc Scope, Files, Dependencies, Rules, Risks, Test, Verification và Diff.
+
+## 12. Promptbook v2.0 compliance record
+
+Revalidation ngày 2026-08-23 xác nhận tài liệu này và task template bao phủ:
+
+- Source-of-truth precedence và non-invention.
+- STOP → REPORT GAP → options/trade-offs → approval wait.
+- OBSERVE → PLAN → IMPLEMENT → TEST → VERIFY → REPORT.
+- Change-size, destructive-change, migration, secrets/PII và review gates.
+- Artifact dependency gate giữa các phase.
+- Modular Monolith, MySQL truth, transaction/idempotency, retry-safe queue/integration, SSR SEO, server authorization và query/index controls.
+- AI bounded-context/outage isolation, governed writes và configuration policy.
+- Global Definition of Done và evidence-based reporting.
+
+Không có quyền implementation mới được tạo bởi lần revalidation này; mọi product/data/contract decision vẫn theo source-of-truth và approval gate.

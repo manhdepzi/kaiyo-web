@@ -1,187 +1,134 @@
 # Dependency Roadmap
 
-## 1. Purpose
+## 1. Purpose and current baseline
 
-This roadmap sequences decisions and technical dependencies revealed by the repository audit. It is not a feature roadmap, delivery estimate, or approval to create business rules, schema, permissions, public contracts, destructive workflows, or stack versions.
+This roadmap records executable gates after the 2026-08-23 re-audit. It does not approve a business rule, schema, permission, contract, provider, runtime version or destructive workflow.
 
-Every stage is gated by the source-of-truth precedence and STOP/REPORT GAP policy in [AI Engineering Governance](../governance/engineering-governance.md). Stage completion requires evidence; absence of evidence is not a pass.
+Current facts:
+
+- Governance Step 00 is revalidated against Promptbook v2.0.
+- Architecture/Functional Specification v1.1 and Promptbook v2.0 are present.
+- Git `main` tracks the GitHub remote and has an initial documentation commit.
+- Product Requirements v0.1, V1/V2 Scope Matrix, V1 single-tenancy and AI-as-V2 boundary are approved.
+- Business Rules Matrix is partially approved at policy-overlay level; System Architecture remains proposed/unapproved.
+- The [D-004–D-007 Approval Pack](../product/decision-approval-pack-D004-D007.md) and individual records now contain approved policy/baseline selections; external legal/forecast/provider facts remain downstream gates.
+- [D-004](../product/decisions/D-004-commerce-finance-operations-policy.md) and [D-005](../product/decisions/D-005-identity-authorization-policy.md) are approved policy; [D-006](../product/decisions/D-006-nfr-slo-recovery-policy.md) has approved A2/engineering targets; [D-007](../product/decisions/D-007-runtime-environment-provider-policy.md) has approved runtime/A1 baseline.
+- [Step 03 Revalidation Report](../business/step-03-revalidation-report.md) records the complete approved V1 policy matrix; contract handoff remains Steps 07–08/13/48.
+- [Step 03 Approval Questionnaire](../business/step-03-approval-questionnaire.md) records Product Owner selection `1` for all ten recommended option IDs on 2026-08-23.
+- [Step 04 Revalidation Report](../architecture/step-04-revalidation-report.md) records the approved V1 architecture baseline.
+- [Step 05 Domain Boundaries](../architecture/domain-boundaries.md) records approved ownership and an acyclic dependency graph.
+- [Step 06 V1 ERD and Entity Catalog](../architecture/v1-erd.md) records approved logical aggregates/cardinalities with no physical schema or premature V2 entities.
+- Step 07 [Schema Dictionary](../database/schema-dictionary.md) and [Index/Concurrency Plan](../database/index-concurrency-plan.md) approve physical intent, access paths and lock/idempotency behavior without creating migrations.
+- Step 08 [API Conventions](../api/api-conventions.md) and [OpenAPI Skeleton](../api/openapi.yaml) are approved and pass Redocly spec/recommended lint; provider addenda remain binding-specific.
+- Step 09 [ADR Registry](../adr/README.md) records nine accepted V1 decisions; AI provider/vector abstraction remains explicitly proposed for V2/D-008.
+- Step 10 [Coding Standards](../governance/coding-standards.md) defines deterministic module/layer/naming/transaction/query/security/test/migration rules.
+- Executable Laravel foundation and Steps 12–26 are implemented; named external providers remain disabled behind approved ports/configuration.
+
+See [Execution Master Plan](../../planManh.md) for the authoritative Step register `00–55` and [Risk Register](./risk-register.md) for risks.
 
 ## 2. Dependency direction
 
-The approved architectural constraints establish these directions:
-
 ```text
-Approved requirements / ADRs / contracts
-                 |
-                 v
-Repository + runtime foundation
-                 |
-                 v
-Independent commerce core -----> infrastructure adapters
-                 |
-                 +-----> SSR public delivery
-                 |
-                 +-----> integration/search adapters (when approved)
-
-Optional AI capabilities -------> approved commerce interfaces/read models
-
-Forbidden: commerce core -------> AI/LLM provider or AI runtime
+Governance (00) [revalidated]
+        |
+        v
+Repository Audit (01) [updated]
+        |
+        v
+PRD + Scope (02) [approved]
+        |
+        v
+Approved Rules (03) -> Architecture (04) -> Domains/ERD/Contracts/ADRs/Standards (05-10)
+        |
+        v
+Foundation and V1 domains (11-35) + continuously built quality controls (48-54)
+        |
+        v
+V1 Global DoD and Production Launch (55)
+        |
+        v
+Optional AI Platform V2 (36-47) -> AI-aware rerun of 48-55
 ```
 
-AI may only be introduced after its use case and boundary are approved. It must not sit on, control, or become required by critical checkout, payment or inventory paths.
+Commerce core must not import, require or wait for AI/LLM capability. MySQL remains authoritative for commerce; Redis/search remain derived infrastructure.
 
-## 3. Gated roadmap
+## 3. Gates
 
-### Gate 0 — Approve the baseline
+### Gate A — Re-baseline and product approval
 
-Dependencies: none; this is the current blocker.
+Status: **IN PROGRESS**
 
-Required approved inputs:
+- [x] Step 00 governance revalidated.
+- [x] Step 01 repository re-audited with current sources.
+- [x] Step 02 PRD and V1/V2 scope matrix created and Product Owner approved.
+- [x] Decision D-001 pricing precedence/non-stacking/rounding recorded and approved.
+- [x] Decision D-002 reservation lifecycle, expiry policy and no-backorder recorded and approved; concrete method/TTL values remain D-004.
+- [x] Decision D-003 tiered authority, balanced thresholds, SoD and revision behavior recorded and approved; D-004 must confirm VND/total basis.
+- [x] D-004/D-005 policy and D-006/D-007 engineering baselines recorded; external legal/provider inputs explicitly retain affected downstream gates.
 
-- Product requirements, acceptance criteria and explicit out-of-scope list.
-- Architecture Specification and relevant ADRs, retaining Modular Monolith as the default unless an ADR approves otherwise.
-- Database/API/Event contracts and compatibility policy.
-- Authentication flows and role/permission matrix.
-- Non-functional requirements for security, accessibility, SEO/indexation/schema, performance/load, availability and data recovery.
-- Environment/deployment model and operational ownership.
+Exit: approved PRD/scope and traceable acceptance criteria exist; source conflicts/gaps are explicit.
 
-Exit evidence:
+### Gate B — Design/contracts lock
 
-- Versioned documents exist in the repository.
-- Conflicts are resolved according to source-of-truth precedence.
-- GAP-001 is closed by an authorized decision.
+Status: **GATE A DESIGN LOCK PASSED — STEPS 00–10 COMPLETE; EARLY CONTROLS NEXT**
 
-### Gate 1 — Establish the reproducible repository foundation
+- Reconcile/approve Business Rules Matrix and System Architecture.
+- Define domains, ERD, schema/index plan, API conventions, Event Catalog bootstrap, ADRs and coding standards.
+- Bootstrap test/security/observability/CI/DR requirements before feature implementation.
 
-Dependencies: Gate 0 stack/runtime decisions.
+Exit: no critical ambiguous rule; ownership has no cycle; DB/API/Event changes have approved contracts.
 
-Candidate work, only after approval:
+### Gate C — Reproducible Laravel foundation
 
-- Scaffold the approved Laravel/PHP and frontend/runtime versions.
-- Add dependency manifests and lockfiles, safe example configuration and local environment instructions.
-- Define module boundaries for the Modular Monolith.
-- Add baseline lint/static analysis, test runner and CI quality gates.
-- Establish secret handling and dependency/security scanning.
+Status: **IN PROGRESS — STEPS 12–26 DONE**
 
-Exit evidence:
+- Scaffold only approved runtime versions.
+- Add manifests/lockfiles, safe configuration, health/log correlation, tests/static analysis and CI.
+- Configure Redis/cache/session/queue/mail/storage behind approved policies without commerce truth in Redis.
 
-- Clean checkout builds and tests reproducibly.
-- No real secret/PII is committed.
-- Version and dependency scans are recorded.
+Exit: clean checkout boots, tests and builds; no secrets/PII exposed.
 
-### Gate 2 — Implement approved platform and data foundations
+### Gate D — V1 domain and Commerce/B2B core
 
-Dependencies: Gates 0–1; approved data/auth/async/storage contracts.
+Status: **PASSED — STEPS 12–26 DONE**
 
-Candidate work, only after approval:
+- Implement Steps 12–26 in dependency order with permission, constraint, concurrency and idempotency tests.
+- Provider-neutral Checkout E2E is closed by Payment and Shipping registrations; named provider certification remains contract-specific.
+- Quote-to-order must create exactly one order and follow approved inventory timing.
 
-- Configure MySQL as system of record and implement approved migrations, constraints and indexes.
-- Implement authentication and server-side authorization policies from the approved matrix.
-- Configure cache/session/queue/storage according to approved use cases.
-- Define transaction, idempotency, retry, timeout and backoff mechanisms for critical writes/jobs/integrations.
+Exit: critical commerce flows pass with transaction/integrity evidence and without any AI dependency.
 
-Exit evidence:
+### Gate E — V1 delivery surfaces and growth
 
-- Migration/integrity and permission tests pass.
-- Critical concurrency/idempotency behaviors are proven by tests.
-- Redis/cache is not the source of truth for order, payment or inventory.
+Status: **IN PROGRESS — STEP 27 DONE; STEP 28 READY**
 
-### Gate 3 — Build commerce core independently of AI
+- Implement frontend architecture/design system, public/account/Sales/Admin UI, CMS, SEO and Merchant/Analytics.
+- SEO-critical content is SSR; all screens include loading/empty/error/conflict/permission states.
 
-Dependencies: Gates 0–2; approved commerce rules and contracts.
+Exit: accessibility, SEO/indexation/schema, analytics dedupe and performance gates pass.
 
-Required boundary:
+### Gate F — V1 production readiness
 
-- Commerce domain/application code has no import, service requirement, runtime call or deployment dependency on AI/LLM providers.
-- Checkout, payment and inventory paths remain fully functional when all AI capabilities are disabled or unavailable.
-- Critical writes are transaction-safe; retryable operations are idempotent.
+Status: **NOT STARTED**
 
-Exit evidence:
+- Close Event Catalog, testing, performance, security, observability, CI/CD and DR.
+- Verify load, backup/restore, monitoring/alerts and deployment/rollback.
 
-- Architecture/dependency test proves no commerce-to-AI dependency.
-- Unit, feature, permission, integrity, race/idempotency and E2E critical-flow tests pass.
-- Failure tests demonstrate AI outage has no effect on critical commerce flows.
+Exit: Global DoD passes; no unresolved Critical/High security issue or known corruption.
 
-### Gate 4 — Deliver approved public/admin surfaces
+### Gate G — AI Platform V2
 
-Dependencies: approved UX/content/route contracts and applicable foundations/core capabilities.
+Status: **DEFERRED until V1 launch and D-008 approval**
 
-Candidate work, only after approval:
+- Build provider-neutral, feature-flagged AI bounded context and governed tools.
+- High-impact writes require immutable proposal, policy/validation/idempotency and human approval.
+- Rerun Event/Test/Performance/Security/Observability/CI/DR/Launch gates for AI enablement.
 
-- Implement server-rendered output for approved SEO-critical public content.
-- Implement approved admin interfaces with server-side authorization.
-- Add accessibility, SEO/indexation/structured-data and security checks.
+Exit: AI evaluation/safety/cost/isolation pass and commerce remains operational with AI disabled/outage.
 
-Exit evidence:
+## 4. Immediate dependency queue
 
-- Critical accessibility and SEO checks pass.
-- Authorization tests cover protected actions.
-- Performance budgets are met with recorded evidence.
-
-### Gate 5 — Add approved integrations and search
-
-Dependencies: approved external API/event/search contracts and source-of-truth behavior.
-
-Candidate work, only after approval:
-
-- Implement adapters with explicit timeout, bounded retry/backoff and observability.
-- Make retryable writes idempotent and queue jobs retry-safe.
-- Ensure search indexes/caches remain derived data rather than commerce truth.
-
-Exit evidence:
-
-- Contract/integration/failure/retry tests pass.
-- Reconciliation and recovery behavior follows approved contracts.
-- Alerts cover integration failure modes.
-
-### Gate 6 — Introduce optional AI capabilities
-
-Dependencies: stable non-AI path; approved AI use case, ADR, data/privacy contract, evaluation criteria and human-approval rules.
-
-Required boundary:
-
-- AI depends on approved ports/read models; commerce core does not depend on AI.
-- AI write tools pass server-side policy, validation and idempotency controls.
-- High-impact actions require human approval.
-- Prompts, model IDs, provider keys, thresholds and business settings are configuration-managed, not hard-coded.
-
-Exit evidence:
-
-- Dependency test still proves no commerce-to-AI edge.
-- AI evaluation and safety regression pass.
-- Provider timeout/backoff, degraded mode, auditability and write-action controls are tested.
-
-### Gate 7 — Production readiness and release verification
-
-Dependencies: all gates included by the approved release scope.
-
-Required evidence:
-
-- Global DoD status recorded item by item.
-- No unresolved Critical/High security issue or known data corruption issue.
-- Load/performance, backup/restore and rollback/deployment runbook verified.
-- Monitoring and alerting are active with owners.
-- ADRs, API/Event catalog and operational documentation are current.
-
-## 4. Current roadmap status
-
-| Gate | Status | Blocker/evidence |
-| --- | --- | --- |
-| Gate 0 — Approved baseline | BLOCKED | GAP-001: approved product/spec/contract set absent |
-| Gate 1 — Repository foundation | NOT STARTED | Depends on Gate 0 decisions |
-| Gate 2 — Platform/data foundation | NOT STARTED | Depends on Gates 0–1 and approved contracts |
-| Gate 3 — AI-independent commerce core | NOT STARTED | No commerce requirements or implementation |
-| Gate 4 — Public/admin surfaces | NOT STARTED | No approved UX/content/route contracts |
-| Gate 5 — Integrations/search | NOT STARTED | No approved contracts |
-| Gate 6 — Optional AI | NOT STARTED | No approved AI use case/ADR; must follow stable non-AI core |
-| Gate 7 — Production readiness | NOT STARTED | No executable application/release candidate |
-
-## 5. Decision requests before coding
-
-To move beyond audit documentation, the authorized owners must provide or approve:
-
-1. The source-of-truth product/specification set described in Gate 0.
-2. The exact stack/version and environment choices.
-3. The first explicitly scoped implementation slice and its acceptance criteria.
-
-Until those decisions exist, the safe next action is documentation/discovery only; application scaffolding or feature code would violate the non-invention rule.
+1. Implement Step 28 semantic design tokens and accessible primitives against the approved Step 27 ownership/state contracts.
+2. Verify contrast, keyboard/focus, reduced-motion and arbitrary-color controls before starting the delivery surfaces.
+3. Preserve SSR-critical public content and server-side permission ownership throughout Steps 29–35.
+4. Keep named Payment, Shipping and carrier integrations disabled until their provider-specific contracts are approved.

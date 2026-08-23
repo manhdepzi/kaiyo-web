@@ -4,12 +4,15 @@
 
 ## Task metadata
 
+- Promptbook Step ID / layer:
+- Release (`V1`/`V2`/cross-cutting):
 - Task ID / link:
 - Title:
 - Owner / requester:
 - Reviewer / approver:
 - Status:
 - Created / updated:
+- Source revision(s)/hash(es):
 
 ## Source of truth
 
@@ -54,6 +57,12 @@
 - Packages/runtime/infrastructure:
 - Upstream/downstream task dependencies:
 
+| Required upstream artifact/decision | Required revision/status | Evidence/link | Gate (`OPEN`/`PASS`/`BLOCKED`) |
+| --- | --- | --- | --- |
+|  |  |  |  |
+
+> Không bắt đầu implementation khi dependency/approval bắt buộc chưa `PASS`. Draft `PROPOSED/UNAPPROVED` không mở implementation gate.
+
 ## Rules
 
 - Approved business rules:
@@ -91,6 +100,7 @@
 - [ ] Scope, files, dependencies, rules, data changes and risks recorded
 - [ ] Test and verification plan recorded
 - [ ] Gaps reported and approvals captured
+- [ ] Artifact dependency gate checked; technical execution order recorded if different from Step ID order
 
 ### IMPLEMENT
 
@@ -193,6 +203,10 @@
 - Public contract/compatibility approval:
 - High-impact AI action human approval:
 - Accepted risk/waiver and expiry:
+
+| Approval scope | Approver/authority | Date | Approved revision/evidence | Status |
+| --- | --- | --- | --- | --- |
+|  |  |  |  |  |
 
 ## Final report
 
