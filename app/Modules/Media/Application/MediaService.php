@@ -125,7 +125,8 @@ final readonly class MediaService
             if ($locked->status === 'deleted' || $locked->trashed()) {
                 return;
             }
-            if (DB::table('catalog_media_references')->where('media_asset_id', $locked->getKey())->exists()) {
+            if (DB::table('catalog_media_references')->where('media_asset_id', $locked->getKey())->exists()
+                || DB::table('content_media_references')->where('media_asset_id', $locked->getKey())->exists()) {
                 throw new DomainException('Referenced media cannot be deleted.');
             }
             $keys = $locked->variants()->pluck('storage_key')->all();

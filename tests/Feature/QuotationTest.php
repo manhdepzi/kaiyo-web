@@ -236,6 +236,9 @@ final class QuotationTest extends TestCase
         self::assertSame(1, DB::table('payments')->where('order_id', $result->order->getKey())->count());
         self::assertSame(1, DB::table('shipments')->where('order_id', $result->order->getKey())->count());
         self::assertSame(1, DB::table('quote_conversion_operations')->count());
+        self::assertSame(1, DB::table('dispatch_records')->where('event_type', 'commerce.order.placed')
+            ->where('aggregate_public_id', $result->order->public_id)->count());
+        self::assertSame('quotation', json_decode((string) DB::table('dispatch_records')->value('payload'), true, flags: JSON_THROW_ON_ERROR)['source']);
     }
 
     public function test_quote_conversion_stock_failure_rolls_back_every_effect(): void
@@ -257,6 +260,7 @@ final class QuotationTest extends TestCase
             self::assertSame(0, DB::table('orders')->count());
             self::assertSame(0, DB::table('inventory_reservations')->count());
             self::assertSame(0, DB::table('quote_conversion_operations')->count());
+            self::assertSame(0, DB::table('dispatch_records')->count());
         }
     }
 

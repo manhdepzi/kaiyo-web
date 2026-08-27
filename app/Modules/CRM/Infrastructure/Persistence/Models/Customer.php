@@ -15,6 +15,8 @@ use Illuminate\Support\Str;
  * @property string $name_normalized
  * @property string $status
  * @property int $lock_version
+ * @property string|null $primary_email_display
+ * @property string|null $primary_phone_display
  */
 final class Customer extends Model
 {

@@ -1,57 +1,73 @@
-@extends('layouts.auth')
-@section('title', 'Bảo mật tài khoản')
-@section('heading', 'Bảo mật tài khoản')
+@extends('layouts.public')
+
+@section('title', 'Bảo mật tài khoản — Kaiyo')
+@section('meta_description', 'Quản lý xác thực hai lớp và các phiên đăng nhập tài khoản Kaiyo.')
+
 @section('content')
-<section aria-labelledby="two-factor-heading">
-    <h2 id="two-factor-heading" class="font-semibold">Xác thực hai lớp</h2>
+<section class="mx-auto max-w-5xl px-5 py-12 lg:px-8">
+    <a href="{{ route('account') }}" class="text-sm font-semibold text-brand hover:underline">← Quay lại tài khoản</a>
+    <div class="mt-5 max-w-3xl">
+        <p class="text-sm font-semibold uppercase tracking-widest text-brand">Customer Portal</p>
+        <h1 class="mt-3 text-3xl font-bold">Bảo mật tài khoản</h1>
+        <p class="mt-2 text-ink-muted">Bảo vệ tài khoản bằng TOTP và thu hồi ngay các phiên không còn tin cậy.</p>
+    </div>
 
-    @if (! $account->two_factor_secret)
-        <p class="mt-2 text-sm text-slate-400">Dùng ứng dụng tạo mã TOTP để bảo vệ tài khoản.</p>
-        <form method="POST" action="{{ route('two-factor.enable') }}" class="mt-4">
-            @csrf
-            <button class="w-full rounded-lg bg-cyan-500 px-4 py-2 font-semibold text-slate-950">Bật xác thực hai lớp</button>
-        </form>
-    @elseif (! $account->hasEnabledTwoFactorAuthentication())
-        <p class="mt-2 text-sm text-amber-300">Quét mã QR rồi nhập mã hiện tại để hoàn tất.</p>
-        <div class="mt-4 rounded-lg bg-white p-4">{!! $account->twoFactorQrCodeSvg() !!}</div>
-        <form method="POST" action="{{ route('two-factor.confirm') }}" class="mt-4 space-y-3">
-            @csrf
-            <label class="block text-sm" for="code">Mã xác thực</label>
-            <input id="code" name="code" inputmode="numeric" autocomplete="one-time-code" required class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2">
-            <button class="w-full rounded-lg bg-cyan-500 px-4 py-2 font-semibold text-slate-950">Xác nhận</button>
-        </form>
-    @else
-        <p class="mt-2 text-sm text-emerald-300">Xác thực hai lớp đang hoạt động.</p>
-        <form method="POST" action="{{ route('two-factor.regenerate-recovery-codes') }}" class="mt-4">
-            @csrf
-            <button class="w-full rounded-lg border border-slate-700 px-4 py-2">Tạo lại mã khôi phục</button>
-        </form>
-        <form method="POST" action="{{ route('two-factor.disable') }}" class="mt-3">
-            @csrf
-            @method('DELETE')
-            <button class="w-full rounded-lg border border-red-800 px-4 py-2 text-red-300">Tắt xác thực hai lớp</button>
-        </form>
+    @if (session('status'))
+        <x-ui.alert class="mt-6" tone="success" title="Đã cập nhật">{{ session('status') }}</x-ui.alert>
     @endif
-</section>
+    @if ($errors->any())
+        <x-ui.alert class="mt-6" tone="danger" title="Không thể hoàn tất yêu cầu">
+            <ul class="list-disc space-y-1 pl-5">@foreach ($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul>
+        </x-ui.alert>
+    @endif
 
-<section aria-labelledby="sessions-heading" class="mt-8 border-t border-slate-800 pt-6">
-    <h2 id="sessions-heading" class="font-semibold">Phiên đang hoạt động</h2>
-    <div class="mt-4 space-y-3">
-        @forelse ($sessions as $session)
-            <article class="rounded-lg border border-slate-800 p-3 text-sm">
-                <p class="break-words text-slate-300">{{ $session->user_agent_redacted ?? 'Thiết bị không xác định' }}</p>
-                <p class="mt-1 text-slate-500">Hoạt động: {{ $session->last_seen_at->format('Y-m-d H:i:s T') }}</p>
-                <form method="POST" action="{{ route('account.security.sessions.destroy', $session->public_id) }}" class="mt-3">
+    <div class="mt-8 grid gap-6 lg:grid-cols-[1fr_1.15fr]">
+        <x-ui.card title="Xác thực hai lớp" description="Mã TOTP bổ sung một lớp bảo vệ ngoài mật khẩu.">
+            @if (! $account->two_factor_secret)
+                <p class="text-sm text-ink-muted">Dùng ứng dụng tạo mã TOTP để bảo vệ tài khoản.</p>
+                <form method="POST" action="{{ route('two-factor.enable') }}" class="mt-5">
+                    @csrf
+                    <x-ui.button type="submit" class="w-full">Bật xác thực hai lớp</x-ui.button>
+                </form>
+            @elseif (! $account->hasEnabledTwoFactorAuthentication())
+                <x-ui.alert tone="warning" title="Cần xác nhận">Quét mã QR rồi nhập mã hiện tại để hoàn tất thiết lập.</x-ui.alert>
+                <div class="mx-auto mt-5 max-w-72 rounded-control border border-line bg-white p-4" aria-label="Mã QR xác thực hai lớp">{!! $account->twoFactorQrCodeSvg() !!}</div>
+                <form method="POST" action="{{ route('two-factor.confirm') }}" class="mt-5 space-y-4">
+                    @csrf
+                    <x-ui.input name="code" label="Mã xác thực" inputmode="numeric" autocomplete="one-time-code" required />
+                    <x-ui.button type="submit" class="w-full">Xác nhận</x-ui.button>
+                </form>
+            @else
+                <x-ui.alert tone="success" title="Đang hoạt động">Xác thực hai lớp đã được bật cho tài khoản này.</x-ui.alert>
+                <form method="POST" action="{{ route('two-factor.regenerate-recovery-codes') }}" class="mt-5">
+                    @csrf
+                    <x-ui.button type="submit" variant="secondary" class="w-full">Tạo lại mã khôi phục</x-ui.button>
+                </form>
+                <form method="POST" action="{{ route('two-factor.disable') }}" class="mt-3">
                     @csrf
                     @method('DELETE')
-                    <button class="rounded-md border border-red-900 px-3 py-1 text-red-300">Thu hồi phiên</button>
+                    <x-ui.button type="submit" variant="danger" class="w-full">Tắt xác thực hai lớp</x-ui.button>
                 </form>
-            </article>
-        @empty
-            <p class="text-sm text-slate-400">Chưa có phiên nào được ghi nhận.</p>
-        @endforelse
+            @endif
+        </x-ui.card>
+
+        <x-ui.card title="Phiên đang hoạt động" description="Thu hồi phiên sẽ vô hiệu hóa phiên đó ngay lập tức.">
+            <div class="space-y-3">
+                @forelse ($sessions as $session)
+                    <article class="rounded-control border border-line bg-surface-muted p-4 text-sm">
+                        <p class="break-words font-medium text-ink">{{ $session->user_agent_redacted ?? 'Thiết bị không xác định' }}</p>
+                        <p class="mt-1 text-ink-muted">Hoạt động: <time datetime="{{ $session->last_seen_at->toAtomString() }}">{{ $session->last_seen_at->format('Y-m-d H:i:s T') }}</time></p>
+                        <form method="POST" action="{{ route('account.security.sessions.destroy', $session->public_id) }}" class="mt-3">
+                            @csrf
+                            @method('DELETE')
+                            <x-ui.button type="submit" variant="danger" size="sm">Thu hồi phiên</x-ui.button>
+                        </form>
+                    </article>
+                @empty
+                    <x-ui.empty-state title="Chưa có phiên nào" description="Phiên đăng nhập được nhận diện sẽ xuất hiện tại đây." />
+                @endforelse
+            </div>
+        </x-ui.card>
     </div>
 </section>
-
-<a href="{{ route('account') }}" class="mt-6 block text-center text-sm text-cyan-400">Quay lại tài khoản</a>
 @endsection

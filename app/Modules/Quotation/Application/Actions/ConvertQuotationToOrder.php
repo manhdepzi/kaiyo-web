@@ -8,11 +8,12 @@ use App\Modules\Checkout\Application\Data\CheckoutResult;
 use App\Modules\Checkout\Contracts\PaymentPreparationPort;
 use App\Modules\Checkout\Contracts\PaymentRegistrationPort;
 use App\Modules\Checkout\Contracts\ShippingRegistrationPort;
-use App\Modules\Checkout\Domain\Events\CheckoutOrderPlaced;
 use App\Modules\Checkout\Infrastructure\Persistence\Models\Order;
 use App\Modules\Checkout\Infrastructure\Persistence\Models\OrderAddressSnapshot;
 use App\Modules\Checkout\Infrastructure\Persistence\Models\OrderLine;
 use App\Modules\CRM\Infrastructure\Persistence\Models\Customer;
+use App\Modules\Foundation\Application\StoreDispatchFact;
+use App\Modules\Foundation\Data\DispatchFact;
 use App\Modules\Identity\Authorization\AuthorizationScope;
 use App\Modules\Identity\Contracts\PermissionAuthorizer;
 use App\Modules\Inventory\Application\Services\InventoryAllocator;
@@ -35,6 +36,7 @@ final readonly class ConvertQuotationToOrder
         private PaymentPreparationPort $payment,
         private PaymentRegistrationPort $paymentRegistration,
         private ShippingRegistrationPort $shippingRegistration,
+        private StoreDispatchFact $dispatchFacts,
     ) {}
 
     public function execute(ConvertQuotationCommand $command): CheckoutResult
@@ -101,7 +103,14 @@ final readonly class ConvertQuotationToOrder
                 $revision->forceFill(['state' => 'converted', 'converted_at' => now(), 'lock_version' => $revision->lock_version + 1])->save();
                 DB::table('quote_operations')->insert(['operation_key' => 'convert:'.$command->operationKey, 'request_hash' => $hash, 'quote_revision_id' => $revision->getKey(), 'action' => 'convert', 'result_state' => 'converted', 'result_version' => $revision->lock_version, 'created_at' => now()]);
                 DB::table('quote_conversion_operations')->insert(['operation_key' => $command->operationKey, 'request_hash' => $hash, 'quote_revision_id' => $revision->getKey(), 'result_order_id' => $order->getKey(), 'actor_user_account_id' => $command->actor->getKey(), 'created_at' => now()]);
-                DB::afterCommit(fn () => event(new CheckoutOrderPlaced($order->public_id, $reservation->public_id)));
+                $this->dispatchFacts->record(new DispatchFact(
+                    'commerce.order.placed:v1:'.$order->public_id,
+                    'commerce.order.placed',
+                    1,
+                    'order',
+                    $order->public_id,
+                    ['order_public_id' => $order->public_id, 'reservation_public_id' => $reservation->public_id, 'source' => 'quotation'],
+                ));
 
                 return new CheckoutResult($order->refresh()->load(['lines', 'addresses']), $reservation->load('items'));
             }, 3);

@@ -9,6 +9,7 @@ use App\Modules\Catalog\Infrastructure\Persistence\Models\Brand;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\Category;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\Product;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\Variant;
+use App\Modules\Foundation\Application\RelayDispatchRecords;
 use App\Modules\Search\Application\SearchService;
 use App\Modules\Search\Contracts\SearchAdapter;
 use App\Modules\Search\Domain\SearchQuery;
@@ -69,6 +70,8 @@ final class SearchTest extends TestCase
         self::assertCount(1, $service->search(new SearchQuery('valve'))->hits);
 
         app(CatalogEventRecorder::class)->record('product', (int) $first->product_id, 1, 'catalog.updated');
+        self::assertSame(1, DB::table('dispatch_records')->where('event_type', 'catalog.projection.changed')->count());
+        app(RelayDispatchRecords::class)->execute(10);
         self::assertCount(2, $service->search(new SearchQuery('valve'))->hits);
     }
 

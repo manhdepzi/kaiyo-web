@@ -93,8 +93,8 @@ final class CatalogTest extends TestCase
         $latest = $action->execute($actor, $active, 1, ['slug' => 'control-valve-v3']);
 
         self::assertSame('active', $latest->status);
-        $this->assertDatabaseHas('slug_redirects', ['source_path' => '/products/control-valve', 'target_path' => '/products/control-valve-v3', 'active' => true]);
-        $this->assertDatabaseHas('slug_redirects', ['source_path' => '/products/control-valve-v2', 'target_path' => '/products/control-valve-v3', 'active' => true]);
+        $this->assertDatabaseHas('slug_redirects', ['source_path' => '/san-pham/control-valve', 'target_path' => '/san-pham/control-valve-v3', 'active' => true]);
+        $this->assertDatabaseHas('slug_redirects', ['source_path' => '/san-pham/control-valve-v2', 'target_path' => '/san-pham/control-valve-v3', 'active' => true]);
         $this->assertDatabaseCount('slug_redirects', 2);
     }
 
@@ -110,6 +110,9 @@ final class CatalogTest extends TestCase
 
         $this->assertDatabaseCount('product_attribute_values', 1);
         $this->assertDatabaseHas('product_attribute_values', ['product_id' => $product->getKey(), 'decimal_value' => '1.5000']);
+        self::assertSame(2, $product->refresh()->lock_version);
+        self::assertSame(3, DB::table('catalog_change_events')->where('aggregate_type', 'product')->where('aggregate_id', $product->getKey())->count());
+        self::assertSame(3, DB::table('dispatch_records')->where('aggregate_type', 'product')->where('aggregate_public_id', $product->public_id)->count());
 
         $this->expectException(DomainException::class);
         $set->execute($actor, $definition, 2, product: $product);

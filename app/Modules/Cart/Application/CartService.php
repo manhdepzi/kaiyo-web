@@ -21,19 +21,20 @@ final readonly class CartService
     public function createGuest(): GuestCart
     {
         $token = rtrim(strtr(base64_encode(random_bytes(32)), '+/', '-_'), '=');
-        $cart = Cart::query()->create(['guest_token_hash' => $this->tokenHash($token), 'status' => 'active', 'expires_at' => now()->addDays(30)]);
+        $cart = Cart::query()->create(['guest_token_hash' => $this->tokenHash($token), 'status' => 'active', 'expires_at' => now()->addDays(30)])->refresh();
 
         return new GuestCart($cart, $token);
     }
 
     public function resolveGuest(string $token): Cart
     {
-        return Cart::query()->where('guest_token_hash', $this->tokenHash($token))->where('status', 'active')->firstOrFail();
+        return Cart::query()->where('guest_token_hash', $this->tokenHash($token))->where('status', 'active')
+            ->where(fn ($query) => $query->whereNull('expires_at')->orWhere('expires_at', '>', now()))->firstOrFail();
     }
 
     public function forCustomer(Customer $customer): Cart
     {
-        return Cart::query()->firstOrCreate(['customer_id' => $customer->getKey(), 'status' => 'active'], ['guest_token_hash' => null]);
+        return Cart::query()->firstOrCreate(['customer_id' => $customer->getKey(), 'status' => 'active'], ['guest_token_hash' => null])->refresh();
     }
 
     public function putLine(Cart $cart, Variant $variant, string $quantity, string $operationKey, int $expectedVersion): Cart
@@ -71,9 +72,53 @@ final readonly class CartService
         }, 3);
     }
 
+    public function putPublicLine(Cart $cart, string $variantPublicId, string $quantity, string $operationKey, int $expectedVersion): Cart
+    {
+        $variant = Variant::query()
+            ->where('public_id', $variantPublicId)
+            ->where('status', 'active')
+            ->whereHas('product', fn ($query) => $query
+                ->where('status', 'active')
+                ->whereHas('category', fn ($category) => $category->where('status', 'active'))
+                ->where(fn ($product) => $product->whereNull('brand_id')->orWhereHas('brand', fn ($brand) => $brand->where('status', 'active'))))
+            ->firstOrFail();
+
+        return $this->putLine($cart, $variant, $quantity, $operationKey, $expectedVersion);
+    }
+
+    public function removeLine(Cart $cart, int $lineId, string $operationKey, int $expectedVersion): Cart
+    {
+        if ($lineId <= 0 || trim($operationKey) === '') {
+            throw new DomainException('Cart line removal identity is invalid.');
+        }
+        $requestHash = hash('sha256', $cart->getKey().'|remove|'.$lineId, true);
+
+        return DB::transaction(function () use ($cart, $lineId, $operationKey, $expectedVersion, $requestHash): Cart {
+            $operation = DB::table('cart_operations')->where('operation_key', $operationKey)->first();
+            if ($operation !== null) {
+                if (! hash_equals((string) $operation->request_hash, $requestHash)) {
+                    throw new DomainException('Idempotency key was reused with a different Cart mutation.');
+                }
+
+                return Cart::query()->with('lines')->findOrFail((int) $operation->result_cart_id);
+            }
+            $locked = Cart::query()->whereKey($cart->getKey())->lockForUpdate()->firstOrFail();
+            if ($locked->status !== 'active' || $locked->lock_version !== $expectedVersion) {
+                throw new DomainException('Cart is stale or inactive.');
+            }
+            $line = CartLine::query()->whereKey($lineId)->where('cart_id', $locked->getKey())->lockForUpdate()->firstOrFail();
+            $line->delete();
+            $locked->forceFill(['lock_version' => $expectedVersion + 1])->save();
+            DB::table('cart_operations')->insert(['operation_key' => $operationKey, 'request_hash' => $requestHash, 'result_cart_id' => $locked->getKey(), 'created_at' => now()]);
+
+            return $locked->refresh()->load('lines');
+        }, 3);
+    }
+
     public function mergeGuestIntoCustomer(string $guestToken, Customer $customer): Cart
     {
-        $guest = Cart::query()->where('guest_token_hash', $this->tokenHash($guestToken))->firstOrFail();
+        $guest = Cart::query()->where('guest_token_hash', $this->tokenHash($guestToken))
+            ->where(fn ($query) => $query->whereNull('expires_at')->orWhere('expires_at', '>', now()))->firstOrFail();
         if ($guest->status === 'merged') {
             return Cart::query()->with('lines')->findOrFail((int) $guest->merged_into_cart_id);
         }

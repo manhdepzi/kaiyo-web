@@ -2,7 +2,6 @@
 
 namespace App\Providers;
 
-use App\Modules\Catalog\Domain\Events\CatalogProjectionChanged;
 use App\Modules\Checkout\Contracts\PaymentPreparationPort;
 use App\Modules\Checkout\Contracts\PaymentRegistrationPort;
 use App\Modules\Checkout\Contracts\ShippingPreparationPort;
@@ -10,6 +9,11 @@ use App\Modules\Checkout\Contracts\ShippingRegistrationPort;
 use App\Modules\Checkout\Contracts\TaxCalculationPort;
 use App\Modules\Checkout\Infrastructure\UnavailableTaxCalculation;
 use App\Modules\CRM\Infrastructure\Authorization\DatabaseScopeTargetVerifier;
+use App\Modules\Foundation\Domain\Events\DispatchFactReleased;
+use App\Modules\Growth\Contracts\AnalyticsDestination;
+use App\Modules\Growth\Contracts\MerchantDestination;
+use App\Modules\Growth\Infrastructure\DisabledAnalyticsDestination;
+use App\Modules\Growth\Infrastructure\DisabledMerchantDestination;
 use App\Modules\Identity\Contracts\PermissionAuthorizer;
 use App\Modules\Identity\Contracts\ScopeTargetVerifier;
 use App\Modules\Identity\Contracts\StaffAccountClassifier;
@@ -54,6 +58,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(ScopeTargetVerifier::class, DatabaseScopeTargetVerifier::class);
         $this->app->bind(SearchAdapter::class, DatabaseSearchAdapter::class);
         $this->app->bind(MalwareScanner::class, HeuristicMalwareScanner::class);
+        $this->app->bind(MerchantDestination::class, DisabledMerchantDestination::class);
+        $this->app->bind(AnalyticsDestination::class, DisabledAnalyticsDestination::class);
         $this->app->bind(PaymentPreparationPort::class, PaymentLifecycleService::class);
         $this->app->bind(PaymentRegistrationPort::class, PaymentLifecycleService::class);
         $this->app->bind(ShippingPreparationPort::class, ShippingConfigurationService::class);
@@ -71,7 +77,11 @@ class AppServiceProvider extends ServiceProvider
     {
         Password::defaults(fn () => Password::min(12)->letters()->mixedCase()->numbers()->symbols());
 
-        Event::listen(CatalogProjectionChanged::class, fn () => app(SearchCacheInvalidator::class)->invalidate());
+        Event::listen(DispatchFactReleased::class, function (DispatchFactReleased $event): void {
+            if ($event->type === 'catalog.projection.changed') {
+                app(SearchCacheInvalidator::class)->invalidate();
+            }
+        });
         Event::listen(PaymentVerified::class, ConfirmOrderFromVerifiedPayment::class);
 
         Event::listen(Verified::class, function (Verified $event): void {

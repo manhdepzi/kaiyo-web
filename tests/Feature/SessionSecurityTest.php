@@ -22,7 +22,14 @@ final class SessionSecurityTest extends TestCase
         $this->actingAs($account)->get('/account')->assertOk();
         $session = AuthSession::query()->where('user_account_id', $account->getKey())->sole();
 
-        $this->delete(route('account.security.sessions.destroy', $session->public_id))->assertRedirect('/account');
+        $this->get(route('account.security'))
+            ->assertOk()
+            ->assertSee('Bảo mật tài khoản')
+            ->assertSee('Thu hồi phiên')
+            ->assertSee($session->user_agent_redacted ?? 'Thiết bị không xác định');
+
+        $this->delete(route('account.security.sessions.destroy', $session->public_id))
+            ->assertRedirect(route('account.security'));
         self::assertNotNull($session->refresh()->revoked_at);
     }
 

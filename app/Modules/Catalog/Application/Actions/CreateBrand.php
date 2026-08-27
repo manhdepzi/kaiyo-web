@@ -11,6 +11,7 @@ use App\Modules\Catalog\Support\CatalogIdentity;
 use App\Modules\Identity\Contracts\PermissionAuthorizer;
 use App\Modules\Identity\Infrastructure\Persistence\Models\UserAccount;
 use DomainException;
+use Illuminate\Support\Facades\DB;
 
 final readonly class CreateBrand
 {
@@ -24,9 +25,12 @@ final readonly class CreateBrand
         if (trim($name) === '') {
             throw new DomainException('Brand name is required.');
         }
-        $brand = Brand::query()->create(['name' => trim($name), 'slug' => $this->identity->slug($slug ?? $name), 'status' => 'active']);
-        $this->events->record('brand', (int) $brand->getKey(), 0, 'catalog.created', ['slug' => $brand->slug]);
 
-        return $brand;
+        return DB::transaction(function () use ($name, $slug): Brand {
+            $brand = Brand::query()->create(['name' => trim($name), 'slug' => $this->identity->slug($slug ?? $name), 'status' => 'active']);
+            $this->events->record('brand', (int) $brand->getKey(), 0, 'catalog.created', ['slug' => $brand->slug]);
+
+            return $brand;
+        });
     }
 }

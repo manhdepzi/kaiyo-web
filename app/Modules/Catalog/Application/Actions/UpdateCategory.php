@@ -45,7 +45,7 @@ final readonly class UpdateCategory
                 'lock_version' => $expectedVersion + 1,
             ])->save();
             if ($newSlug !== $oldSlug) {
-                $this->redirects->replace('category', (int) $locked->getKey(), '/categories/'.$oldSlug, '/categories/'.$newSlug);
+                $this->redirects->replace('category', (int) $locked->getKey(), '/danh-muc/'.$oldSlug, '/danh-muc/'.$newSlug);
                 $this->events->record('category', (int) $locked->getKey(), $locked->lock_version, 'catalog.slug_changed', ['from' => $oldSlug, 'to' => $newSlug]);
             } else {
                 $this->events->record('category', (int) $locked->getKey(), $locked->lock_version, 'catalog.updated');

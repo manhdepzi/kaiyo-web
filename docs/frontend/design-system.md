@@ -2,7 +2,7 @@
 
 ## Control
 
-- Status: `IMPLEMENTED — AWAITING STEP GATE VERIFICATION`
+- Status: `DONE — EXECUTABLE PRIMITIVES`
 - Inputs: approved Step 27 frontend architecture, current Kaiyo cyan/slate visual baseline and WCAG 2.2 AA target
 - Direction: **Maritime Precision** — calm, technical and trustworthy for mixed B2C/B2B commerce; dense staff screens must remain readable without making public pages feel administrative
 

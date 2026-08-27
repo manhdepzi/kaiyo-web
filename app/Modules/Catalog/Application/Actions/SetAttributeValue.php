@@ -26,26 +26,32 @@ final readonly class SetAttributeValue
         if (($product === null) === ($variant === null) || $definition->status !== 'active') {
             throw new DomainException('Attribute owner or definition is invalid.');
         }
-        $typed = $this->typedValue($definition->value_type, $value);
-        $ownerType = $product === null ? 'variant' : 'product';
-        $ownerId = (int) ($product?->getKey() ?? $variant?->getKey());
-        $identity = hash('sha256', $definition->getKey().'|'.$ownerType.'|'.$ownerId, true);
-        DB::table('product_attribute_values')->updateOrInsert(
-            ['identity_hash' => $identity],
-            [
-                'attribute_definition_id' => $definition->getKey(),
-                'product_id' => $product?->getKey(),
-                'variant_id' => $variant?->getKey(),
-                'text_value' => null,
-                'integer_value' => null,
-                'decimal_value' => null,
-                'boolean_value' => null,
-                ...$typed,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-        );
-        $this->events->record($ownerType, $ownerId, 0, 'attribute.changed', ['attribute' => $definition->code]);
+        DB::transaction(function () use ($definition, $value, $product, $variant): void {
+            $typed = $this->typedValue($definition->value_type, $value);
+            $ownerType = $product === null ? 'variant' : 'product';
+            $ownerId = (int) ($product?->getKey() ?? $variant?->getKey());
+            $owner = $ownerType === 'product'
+                ? Product::query()->whereKey($ownerId)->lockForUpdate()->firstOrFail()
+                : Variant::query()->whereKey($ownerId)->lockForUpdate()->firstOrFail();
+            $identity = hash('sha256', $definition->getKey().'|'.$ownerType.'|'.$ownerId, true);
+            DB::table('product_attribute_values')->updateOrInsert(
+                ['identity_hash' => $identity],
+                [
+                    'attribute_definition_id' => $definition->getKey(),
+                    'product_id' => $product?->getKey(),
+                    'variant_id' => $variant?->getKey(),
+                    'text_value' => null,
+                    'integer_value' => null,
+                    'decimal_value' => null,
+                    'boolean_value' => null,
+                    ...$typed,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ],
+            );
+            $owner->forceFill(['lock_version' => $owner->lock_version + 1])->save();
+            $this->events->record($ownerType, $ownerId, $owner->lock_version, 'attribute.changed', ['attribute' => $definition->code]);
+        }, 3);
     }
 
     /** @return array<string, string|int|bool> */

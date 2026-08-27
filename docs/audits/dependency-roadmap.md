@@ -100,7 +100,7 @@ Exit: critical commerce flows pass with transaction/integrity evidence and witho
 
 ### Gate E — V1 delivery surfaces and growth
 
-Status: **IN PROGRESS — STEP 27 DONE; STEP 28 READY**
+Status: **IN PROGRESS — STEPS 27–28 DONE; STEPS 29–34 HAVE GATED SLICES**
 
 - Implement frontend architecture/design system, public/account/Sales/Admin UI, CMS, SEO and Merchant/Analytics.
 - SEO-critical content is SSR; all screens include loading/empty/error/conflict/permission states.
@@ -128,7 +128,8 @@ Exit: AI evaluation/safety/cost/isolation pass and commerce remains operational 
 
 ## 4. Immediate dependency queue
 
-1. Implement Step 28 semantic design tokens and accessible primitives against the approved Step 27 ownership/state contracts.
-2. Verify contrast, keyboard/focus, reduced-motion and arbitrary-color controls before starting the delivery surfaces.
-3. Preserve SSR-critical public content and server-side permission ownership throughout Steps 29–35.
-4. Keep named Payment, Shipping and carrier integrations disabled until their provider-specific contracts are approved.
+1. Complete Step 33 governed media references and isolated MySQL/browser evidence; preserve passing type-specific revision/scheduler/Admin/public flows.
+2. Complete Step 34 schema-validation, landing-page and browser/production-host evidence while preserving flat slug redirects.
+3. Preserve Step 29–32 completed slices while waiting for Contact, missing customer-domain contracts and approved KPI definitions.
+4. Add mobile/desktop, accessibility, price/stock conflict and query-budget evidence.
+5. Keep named Payment, Shipping and carrier integrations disabled until their provider-specific contracts are approved.

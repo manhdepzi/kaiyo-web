@@ -48,7 +48,7 @@ final readonly class UpdateProduct
             $locked->forceFill([...$allowed, 'lock_version' => $expectedVersion + 1])->save();
             $event = $locked->slug === $oldSlug ? 'catalog.updated' : 'catalog.slug_changed';
             if ($event === 'catalog.slug_changed') {
-                $this->redirects->replace('product', (int) $locked->getKey(), '/products/'.$oldSlug, '/products/'.$locked->slug);
+                $this->redirects->replace('product', (int) $locked->getKey(), '/san-pham/'.$oldSlug, '/san-pham/'.$locked->slug);
             }
             $this->events->record('product', (int) $locked->getKey(), $locked->lock_version, $event, ['from' => $oldSlug, 'to' => $locked->slug]);
 

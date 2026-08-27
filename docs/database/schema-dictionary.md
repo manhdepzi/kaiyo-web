@@ -2,7 +2,7 @@
 
 ## 1. Control
 
-- Status: `APPROVED DESIGN — STEPS 12–26 IMPLEMENTED; STEP 27 FRONTEND ARCHITECTURE DONE; STEP 28 READY`
+- Status: `APPROVED DESIGN — STEPS 12–26 IMPLEMENTED; STEPS 27–28 DELIVERY CONTRACTS DONE; STEP 29 READY`
 - Database baseline: MySQL 8.4 LTS, InnoDB, `utf8mb4` with one approved accent/case collation chosen consistently at scaffold time
 - Approval date: 2026-08-23 (Asia/Bangkok)
 - Inputs: approved Step 03 rules, Step 05 boundaries and [Step 06 ERD](../architecture/v1-erd.md)
@@ -162,13 +162,13 @@ Resource target FK activation is staged: Step 13 creates typed nullable scope co
 
 ## 10. Cross-cutting physical contract candidates
 
-These tables are approved in intent; Step 09 ADR confirms the reliable-dispatch implementation name/relay mechanics before migration.
+These cross-cutting contracts are governed by Step 09 ADRs. The `dispatch_records` subset is physically implemented by migration `000018`; the remaining generic candidates are not implicitly approved for migration.
 
 | Table | Essential columns | Integrity |
 | --- | --- | --- |
 | `idempotency_outcomes` | scope, key hash, request hash, state, result code/resource public ID/response hash, owner account NULL, expires at, timestamps | unique scope+key hash; conflicting request hash rejected; processing claim and terminal result durable |
 | `audit_records` | domain, actor/account, action, target type/public ID, policy/rule/config revisions, redacted diff/metadata JSON, correlation ID, occurred at | append-only; indexed by target/actor/time; no secret/raw sensitive payload |
-| `dispatch_records` | producer domain, fact type/version, aggregate public ID/revision, payload JSON, PII class, state, attempt/next attempt, created/published times | unique fact identity; inserted in same transaction as domain change; payload contract Step 48 |
+| `dispatch_records` | public ID, event identity hash, fact type/version, aggregate type/public ID, bounded payload JSON/hash, state, attempts, available/claimed/published times and safe error code | unique fact identity; inserted in same transaction as domain change; claim index by state/availability; Step 48 catalog owns payload versions |
 
 ## 11. Explicit exclusions
 

@@ -1,9 +1,12 @@
 <?php
 
+use App\Http\Middleware\AddPrivateResponseHeaders;
 use App\Http\Middleware\AssignCorrelationId;
 use App\Http\Middleware\EnsureAccountCanAccess;
 use App\Http\Middleware\EnsureStaffTwoFactorEnabled;
 use App\Http\Middleware\RequirePermission;
+use App\Http\Middleware\ShareAdminNavigation;
+use App\Http\Middleware\ShareStaffNavigation;
 use App\Http\Middleware\TrackAuthenticatedSession;
 use App\Http\Middleware\TrustConfiguredProxies;
 use Illuminate\Foundation\Application;
@@ -28,6 +31,9 @@ return Application::configure(basePath: dirname(__DIR__))
             TrackAuthenticatedSession::class,
         ]);
         $middleware->alias([
+            'private.response' => AddPrivateResponseHeaders::class,
+            'admin.navigation' => ShareAdminNavigation::class,
+            'staff.navigation' => ShareStaffNavigation::class,
             'staff.2fa' => EnsureStaffTwoFactorEnabled::class,
             'permission' => RequirePermission::class,
         ]);

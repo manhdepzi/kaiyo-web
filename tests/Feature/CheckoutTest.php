@@ -59,6 +59,13 @@ final class CheckoutTest extends TestCase
         self::assertSame('active', $result->reservation->status);
         self::assertSame(20_000, InventoryQuantity::from((string) $balance->refresh()->reserved_qty)->units);
         self::assertDatabaseHas('order_status_history', ['order_id' => $result->order->getKey(), 'to_state' => 'pending']);
+        self::assertDatabaseHas('dispatch_records', [
+            'event_type' => 'commerce.order.placed',
+            'event_version' => 1,
+            'aggregate_type' => 'order',
+            'aggregate_public_id' => $result->order->public_id,
+            'state' => 'pending',
+        ]);
     }
 
     public function test_repeated_submit_returns_one_order_and_payload_reuse_is_rejected(): void
@@ -75,6 +82,7 @@ final class CheckoutTest extends TestCase
         self::assertSame(1, DB::table('orders')->count());
         self::assertSame(1, DB::table('inventory_reservations')->count());
         self::assertSame(1, DB::table('checkout_operations')->count());
+        self::assertSame(1, DB::table('dispatch_records')->count());
 
         $this->expectException(DomainException::class);
         app(PlaceCheckoutOrder::class)->execute(new CheckoutCommand(
@@ -112,6 +120,7 @@ final class CheckoutTest extends TestCase
             self::assertSame(0, DB::table('orders')->count());
             self::assertSame(0, DB::table('pricing_calculation_snapshots')->count());
             self::assertSame(0, DB::table('inventory_reservations')->count());
+            self::assertSame(0, DB::table('dispatch_records')->count());
             self::assertSame(0, InventoryQuantity::from((string) $balance->refresh()->reserved_qty)->units);
             self::assertSame('active', $cart->refresh()->status);
         }

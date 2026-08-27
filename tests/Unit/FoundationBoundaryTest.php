@@ -30,6 +30,10 @@ final class FoundationBoundaryTest extends TestCase
             '2026_08_23_000012_create_shipping_tables.php',
             '2026_08_23_000013_create_quotation_tables.php',
             '2026_08_23_000014_create_quote_to_order_conversion.php',
+            '2026_08_23_000015_create_cms_page_tables.php',
+            '2026_08_23_000016_create_cms_content_type_tables.php',
+            '2026_08_23_000017_create_growth_delivery_tables.php',
+            '2026_08_23_000018_create_dispatch_records_table.php',
         ], $migrationNames);
 
         $composer = json_decode(

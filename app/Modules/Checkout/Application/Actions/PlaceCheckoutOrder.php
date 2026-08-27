@@ -15,11 +15,12 @@ use App\Modules\Checkout\Contracts\PaymentRegistrationPort;
 use App\Modules\Checkout\Contracts\ShippingPreparationPort;
 use App\Modules\Checkout\Contracts\ShippingRegistrationPort;
 use App\Modules\Checkout\Contracts\TaxCalculationPort;
-use App\Modules\Checkout\Domain\Events\CheckoutOrderPlaced;
 use App\Modules\Checkout\Infrastructure\Persistence\Models\Order;
 use App\Modules\Checkout\Infrastructure\Persistence\Models\OrderAddressSnapshot;
 use App\Modules\Checkout\Infrastructure\Persistence\Models\OrderLine;
 use App\Modules\CRM\Infrastructure\Persistence\Models\Customer;
+use App\Modules\Foundation\Application\StoreDispatchFact;
+use App\Modules\Foundation\Data\DispatchFact;
 use App\Modules\Inventory\Application\Services\InventoryAllocator;
 use App\Modules\Inventory\Application\Services\InventoryReservationService;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\InventoryReservation;
@@ -44,6 +45,7 @@ final readonly class PlaceCheckoutOrder
         private PaymentPreparationPort $payment,
         private PaymentRegistrationPort $paymentRegistration,
         private ShippingRegistrationPort $shippingRegistration,
+        private StoreDispatchFact $dispatchFacts,
     ) {}
 
     public function execute(CheckoutCommand $command): CheckoutResult
@@ -150,7 +152,14 @@ final readonly class PlaceCheckoutOrder
                     'result_order_id' => $order->getKey(),
                     'created_at' => now(),
                 ]);
-                DB::afterCommit(fn () => event(new CheckoutOrderPlaced($order->public_id, $reservation->public_id)));
+                $this->dispatchFacts->record(new DispatchFact(
+                    'commerce.order.placed:v1:'.$order->public_id,
+                    'commerce.order.placed',
+                    1,
+                    'order',
+                    $order->public_id,
+                    ['order_public_id' => $order->public_id, 'reservation_public_id' => $reservation->public_id, 'source' => 'checkout'],
+                ));
 
                 return new CheckoutResult($order->refresh()->load(['lines', 'addresses']), $reservation->load('items'));
             }, 3);

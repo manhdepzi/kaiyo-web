@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Catalog\Infrastructure\Persistence\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
@@ -24,6 +25,12 @@ final class Variant extends Model
     protected static function booted(): void
     {
         self::creating(fn (self $model) => $model->public_id = $model->public_id ?: (string) Str::ulid());
+    }
+
+    /** @return BelongsTo<Product, $this> */
+    public function product(): BelongsTo
+    {
+        return $this->belongsTo(Product::class);
     }
 
     protected function casts(): array
