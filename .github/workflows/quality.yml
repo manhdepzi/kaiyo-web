@@ -51,6 +51,17 @@ jobs:
       - run: cp .env.example .env
       - run: php artisan key:generate
       - run: composer quality
+      - name: MySQL critical and concurrency gates
+        env:
+          DB_CONNECTION: mysql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_DATABASE: kaiyo_test
+          DB_USERNAME: kaiyo
+          DB_PASSWORD: test-only
+        run: |
+          php vendor/bin/phpunit --configuration=phpunit.mysql.xml
+          php artisan outbox:concurrency-probe
       - run: npm run build
       - run: npx --yes @redocly/cli@2.47.0 lint docs/api/openapi.yaml --extends=recommended
       - run: composer audit --locked --no-interaction

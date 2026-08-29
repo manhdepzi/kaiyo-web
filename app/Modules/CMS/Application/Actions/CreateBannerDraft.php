@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\CMS\Application\Actions;
 
+use App\Modules\CMS\Application\Support\HomeSlideCatalog;
 use App\Modules\CMS\Infrastructure\Persistence\Models\Banner;
 use App\Modules\CMS\Infrastructure\Persistence\Models\BannerRevision;
 use App\Modules\Identity\Authorization\AuthorizationScope;
@@ -27,6 +28,8 @@ final readonly class CreateBannerDraft
         ?string $body = null,
         ?string $ctaLabel = null,
         ?string $ctaUrl = null,
+        ?string $imagePath = null,
+        int $sortOrder = 0,
     ): array {
         if (! $this->authorizer->allows($actor, 'content.manage', AuthorizationScope::module('content'))) {
             throw new AuthorizationException('Content management permission is required.');
@@ -37,6 +40,7 @@ final readonly class CreateBannerDraft
         $body = $this->optional($body);
         $ctaLabel = $this->optional($ctaLabel);
         $ctaUrl = $this->optional($ctaUrl);
+        $imagePath = HomeSlideCatalog::validate($imagePath);
         if ($code === '' || mb_strlen($code) > 180 || preg_match('/\A[a-z0-9][a-z0-9._-]{2,99}\z/', $placement) !== 1 || $headline === '' || mb_strlen($headline) > 240) {
             throw new DomainException('Banner code, placement or headline is invalid.');
         }
@@ -46,8 +50,11 @@ final readonly class CreateBannerDraft
         if ($ctaUrl !== null && ! $this->isSafeUrl($ctaUrl)) {
             throw new DomainException('Banner CTA URL must be an internal path or HTTPS URL.');
         }
+        if ($sortOrder < 0 || $sortOrder > 100000) {
+            throw new DomainException('Banner sort order is invalid.');
+        }
 
-        return DB::transaction(function () use ($actor, $code, $placement, $headline, $body, $ctaLabel, $ctaUrl): array {
+        return DB::transaction(function () use ($actor, $code, $placement, $headline, $body, $ctaLabel, $ctaUrl, $imagePath, $sortOrder): array {
             $banner = Banner::query()->create(['code' => $code, 'placement' => $placement, 'status' => 'draft']);
             $revision = BannerRevision::query()->create([
                 'banner_id' => $banner->getKey(),
@@ -56,7 +63,9 @@ final readonly class CreateBannerDraft
                 'body' => $body,
                 'cta_label' => $ctaLabel,
                 'cta_url' => $ctaUrl,
-                'integrity_hash' => hash('sha256', json_encode([$code, $placement, 1, $headline, $body, $ctaLabel, $ctaUrl], JSON_THROW_ON_ERROR), true),
+                'image_path' => $imagePath,
+                'sort_order' => $sortOrder,
+                'integrity_hash' => hash('sha256', json_encode([$code, $placement, 1, $headline, $body, $ctaLabel, $ctaUrl, $imagePath, $sortOrder], JSON_THROW_ON_ERROR), true),
                 'created_by_user_account_id' => $actor->getKey(),
             ]);
             $banner->forceFill(['current_revision_id' => $revision->getKey()])->save();

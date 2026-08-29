@@ -1,0 +1,3 @@
+<svg aria-hidden="true" class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true" data-slot="icon">
+  <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5"/>
+</svg><?php /**PATH C:\laragon\www\kaiyow\storage\framework\testing-views/39cbb558c3af686662535b6361fc743d.blade.php ENDPATH**/ ?>

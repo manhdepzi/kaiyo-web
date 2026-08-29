@@ -8,6 +8,10 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // Intentionally empty. Domain seed data requires an approved contract.
+        if (! app()->environment(['local', 'testing'])) {
+            return;
+        }
+
+        $this->call(DemoCatalogSeeder::class);
     }
 }

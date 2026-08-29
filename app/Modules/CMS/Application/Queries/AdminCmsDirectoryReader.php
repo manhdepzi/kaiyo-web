@@ -27,6 +27,7 @@ final class AdminCmsDirectoryReader
             ->get([
                 $roots.'.public_id', $roots.'.'.$keyColumn.' as content_key', $roots.'.status', $roots.'.lock_version',
                 $roots.'.published_revision_id', $revisions.'.'.$labelColumn.' as label', $revisions.'.revision_no', $revisions.'.id as revision_id',
+                ...($roots === 'banners' ? [$revisions.'.image_path', $revisions.'.sort_order'] : []),
             ]);
         $media = collect();
         if ($mediaOwnerColumn !== null && $rows->isNotEmpty()) {
@@ -53,6 +54,8 @@ final class AdminCmsDirectoryReader
                 'label' => (string) $values['label'],
                 'revision_no' => (int) $values['revision_no'],
                 'media' => $references,
+                'image_path' => isset($values['image_path']) ? (string) $values['image_path'] : null,
+                'sort_order' => isset($values['sort_order']) ? (int) $values['sort_order'] : 0,
             ];
         })->all());
     }

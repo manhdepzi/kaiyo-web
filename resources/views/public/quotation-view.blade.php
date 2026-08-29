@@ -22,9 +22,9 @@
     </x-ui.card>
     @if(in_array($quote['state'], ['sent', 'viewed'], true))
         <div class="mt-6 flex flex-wrap gap-3">
-            @if($quote['state'] === 'sent')<form method="POST" action="{{ route('public.quotation.access', [$quote['publicId'], 'viewed']) }}">@csrf<input type="hidden" name="event_key" value="{{ (string) \Illuminate\Support\Str::ulid() }}"><x-ui.button type="submit" variant="secondary">Đánh dấu đã xem</x-ui.button></form>@endif
-            <form method="POST" action="{{ route('public.quotation.access', [$quote['publicId'], 'accepted']) }}">@csrf<input type="hidden" name="event_key" value="{{ (string) \Illuminate\Support\Str::ulid() }}"><x-ui.button type="submit">Chấp nhận báo giá</x-ui.button></form>
-            <form method="POST" action="{{ route('public.quotation.access', [$quote['publicId'], 'rejected']) }}">@csrf<input type="hidden" name="event_key" value="{{ (string) \Illuminate\Support\Str::ulid() }}"><x-ui.button type="submit" variant="danger">Từ chối</x-ui.button></form>
+            @if($quote['state'] === 'sent')<form method="POST" action="{{ route('public.quotation.access', [$quote['publicId'], 'viewed']) }}">@csrf<input type="hidden" name="event_key" value="{{ (string) \Illuminate\Support\Str::ulid() }}"><x-ui.button type="submit" variant="secondary" icon="eye">Đánh dấu đã xem</x-ui.button></form>@endif
+            <form method="POST" action="{{ route('public.quotation.access', [$quote['publicId'], 'accepted']) }}">@csrf<input type="hidden" name="event_key" value="{{ (string) \Illuminate\Support\Str::ulid() }}"><x-ui.button type="submit" icon="check-circle">Chấp nhận báo giá</x-ui.button></form>
+            <form method="POST" action="{{ route('public.quotation.access', [$quote['publicId'], 'rejected']) }}">@csrf<input type="hidden" name="event_key" value="{{ (string) \Illuminate\Support\Str::ulid() }}"><x-ui.button type="submit" variant="danger" icon="x-circle">Từ chối</x-ui.button></form>
         </div>
     @endif
 </section>

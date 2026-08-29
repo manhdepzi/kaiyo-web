@@ -115,16 +115,18 @@ final class TechnicalSeoTest extends TestCase
 
         $schema = json_decode($matches[1], true, 512, JSON_THROW_ON_ERROR);
         self::assertIsArray($schema);
-        self::assertSame(['@context', '@type', 'name', 'category', 'url', 'description', 'brand'], array_keys($schema));
+        self::assertSame(['@context', '@type', 'name', 'category', 'url', 'description', 'sku', 'brand'], array_keys($schema));
         self::assertSame('https://schema.org', $schema['@context']);
         self::assertSame('Product', $schema['@type']);
         self::assertSame('Schema pump', $schema['name']);
         self::assertSame('Industrial pumps', $schema['category']);
         self::assertSame(route('public.product', 'schema-pump'), $schema['url']);
+        self::assertSame('SCHEMA-001', $schema['sku']);
         self::assertSame(['@type' => 'Brand', 'name' => 'Kaiyo Safe'], $schema['brand']);
         self::assertArrayNotHasKey('offers', $schema);
         self::assertArrayNotHasKey('aggregateRating', $schema);
         self::assertArrayNotHasKey('review', $schema);
+        self::assertStringContainsString('"@type":"BreadcrumbList"', $html);
     }
 
     private function redirectFact(string $source, string $target, string $ownerType, int $ownerId): void

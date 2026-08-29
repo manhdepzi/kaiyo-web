@@ -18,7 +18,7 @@ final readonly class SalesLeadReader
 
     public function read(UserAccount $actor, string $publicId): ?SalesLeadView
     {
-        $lead = Lead::query()->where('public_id', $publicId)->first();
+        $lead = Lead::query()->with('publicContactSubmission')->where('public_id', $publicId)->first();
         if ($lead === null) {
             return null;
         }
@@ -43,6 +43,9 @@ final readonly class SalesLeadReader
             $lead->converted_company_id === null ? null : Company::query()->whereKey($lead->converted_company_id)->value('public_id'),
             $lead->status !== 'converted' && $this->authorizer->allows($actor, 'crm.leads.update', $scope),
             in_array($lead->status, ['new', 'qualified'], true) && $this->authorizer->allows($actor, 'crm.leads.convert', $scope),
+            $lead->publicContactSubmission?->topic,
+            $lead->publicContactSubmission?->message,
+            $lead->publicContactSubmission?->submitted_at?->toIso8601String(),
         );
     }
 }

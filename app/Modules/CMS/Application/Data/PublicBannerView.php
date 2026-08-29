@@ -11,5 +11,7 @@ final readonly class PublicBannerView
         public ?string $body,
         public ?string $ctaLabel,
         public ?string $ctaUrl,
+        public ?string $imagePath = null,
+        public int $sortOrder = 0,
     ) {}
 }

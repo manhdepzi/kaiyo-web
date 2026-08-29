@@ -18,7 +18,7 @@
                 <x-ui.input name="email" label="Email" type="email" />
                 <x-ui.input name="phone" label="Điện thoại" />
                 <x-ui.input name="tax_code" label="Mã số thuế" />
-                <div class="md:col-span-2 lg:col-span-3"><x-ui.button type="submit">Tạo Lead</x-ui.button></div>
+                <div class="md:col-span-2 lg:col-span-3"><x-ui.button type="submit" icon="user-plus">Tạo Lead</x-ui.button></div>
             </form>
         </x-ui.card>
     @endif

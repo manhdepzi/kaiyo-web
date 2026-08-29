@@ -17,11 +17,13 @@
 - [x] Old localized and legacy-English Catalog paths resolve directly to the current active public URL; inactive owners fail closed.
 - [x] Product sitemap membership follows public sellability (active Category/Brand and at least one active Variant).
 - [x] Category/Brand pagination emits stable self-canonical and prev/next navigation; empty overflow pages are noindex.
+- [x] Product SSR emits bounded title/description, large image-preview policy, Open Graph/Twitter metadata and one semantic H1.
+- [x] Product JSON-LD now includes published images, active Variant SKU and approved presentation properties; Product breadcrumb emits a canonical `BreadcrumbList`.
 
 ## Verification evidence
 
 - Technical SEO focused: 5 passed / 51 assertions.
-- Full regression: 176 passed / 1235 assertions with four documented MySQL-only trigger skips; PHPStan level 8, Pint and production asset build pass.
+- Full regression: 182 passed / 1268 assertions with four documented MySQL-only trigger skips; PHPStan level 8, Pint and production asset build pass.
 
 ## Remaining
 

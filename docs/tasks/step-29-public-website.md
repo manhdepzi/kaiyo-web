@@ -1,6 +1,6 @@
 # Step 29 — Public Website Task Record
 
-- Status: `IN PROGRESS — PUBLIC COMMERCE SLICE COMPLETE; CMS GATE OPEN`
+- Status: `IN PROGRESS — BROWSER EVIDENCE GATE`
 - Started: 2026-08-25
 - Inputs: Steps 15–21, 25 and 27–28 `DONE`
 
@@ -17,17 +17,20 @@
 - [x] Added opaque HttpOnly guest Cart identity, active-only add/update/remove, deterministic authenticated merge, optimistic-version conflict and explicit unavailable-preview recovery states.
 - [x] Added verified-account Checkout UI through the Step 21 action, authoritative repricing/tax/shipping/inventory execution, disabled-configuration states and Customer-owned receipt isolation.
 - [x] Added guest/authenticated quotation request UI through the Step 25 actions, B2B bank-transfer policy, anti-abuse handling, submitted lifecycle and session-bound opaque guest access.
+- [x] Added public Contact capture into an unowned CRM Lead with server validation, consent evidence, honeypot, rate limiting and operation-key idempotency.
+- [x] Expanded the local review catalog to nine products and 27 variants, focused on Van gió and Ống gió, with 20 locally served gallery assets.
+- [x] Rebuilt Product detail SSR with category navigation, thumbnail gallery, pointer-aware moderate deep zoom, sticky configuration/CTA card, factual specifications and related products.
+- [x] Refined Product detail into a responsive three-column B2B layout with accessible variant cards, synchronized selected configuration, quantity stepper and reduced 1.45x pointer zoom.
+- [x] Strengthened Product SEO with unique title/description, canonical, large-preview robots policy, Open Graph/Twitter metadata, descriptive image markup, Product properties and BreadcrumbList JSON-LD without inventing offers or ratings.
 
 ## Current evidence
 
 - `PublicWebsiteTest` covers semantic SSR, public Catalog, Cart cookie/idempotency/merge/conflicts, Checkout login/profile/configuration/ownership and guest Quotation submission/access isolation.
-- Focused public suite passes 13 tests/88 assertions; full regression passes 129 tests/789 assertions with four intentional MySQL-only skips.
-- PHPStan level 8, Pint, route registration, `git diff --check` and the production asset build pass.
-- Production assets are approximately 33.63 KB CSS and 48.62 KB JavaScript before compression.
+- `DemoCatalogPresentationTest` covers idempotent product seeding, gallery/deep-zoom markup, variants, categories and related-product rendering; `PublicContactTest` covers form validation, normalization and idempotent CRM capture.
+- Focused Catalog/Search/Public Website suites pass 25 tests/177 assertions; Contact passes 3 tests/23 assertions. Full regression passes 192 tests/1,433 assertions with four intentional environment-specific skips. PHPStan level 8, Pint and the production Vite build pass.
 
 ## Remaining before Step 29 can be `DONE`
 
-- Published CMS content integration when Step 33 is available; Contact lead submission after the approved CRM command is exposed.
-- Final browser-assisted mobile/desktop, keyboard/accessibility and query-count evidence after the CMS/Contact surfaces exist.
+- Final browser-assisted mobile/desktop, keyboard/accessibility, deep-zoom interaction and query-count evidence.
 
-The live `kaiyo` database is not migrated by this task. Catalog-backed routes require the approved application schema; schema application to a live database remains an explicit operational action.
+The live `kaiyo` database was seeded idempotently with the review catalog and migration `2026_08_29_000021` was applied on 2026-08-29. This is review data, not a substitute for the final approved product import workflow.

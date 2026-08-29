@@ -23,10 +23,10 @@ use App\Modules\Identity\Infrastructure\Persistence\Models\UserAccount;
 use App\Modules\Identity\Support\AuthenticationEventRecorder;
 use App\Modules\Media\Contracts\MalwareScanner;
 use App\Modules\Media\Infrastructure\HeuristicMalwareScanner;
+use App\Modules\Notification\Application\Listeners\CreateOrderStateNotification;
 use App\Modules\Order\Contracts\PaymentCancellationPort;
 use App\Modules\Payment\Application\Listeners\ConfirmOrderFromVerifiedPayment;
 use App\Modules\Payment\Application\Services\PaymentLifecycleService;
-use App\Modules\Payment\Domain\Events\PaymentVerified;
 use App\Modules\Payment\Infrastructure\PaymentCancellationAdapter;
 use App\Modules\Payment\Infrastructure\PaymentProviderRegistry;
 use App\Modules\Search\Application\SearchCacheInvalidator;
@@ -82,7 +82,8 @@ class AppServiceProvider extends ServiceProvider
                 app(SearchCacheInvalidator::class)->invalidate();
             }
         });
-        Event::listen(PaymentVerified::class, ConfirmOrderFromVerifiedPayment::class);
+        Event::listen(DispatchFactReleased::class, ConfirmOrderFromVerifiedPayment::class);
+        Event::listen(DispatchFactReleased::class, CreateOrderStateNotification::class);
 
         Event::listen(Verified::class, function (Verified $event): void {
             if (! $event->user instanceof UserAccount || $event->user->status !== 'pending') {

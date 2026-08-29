@@ -15,29 +15,33 @@
 
     <header class="border-b border-line bg-surface">
         <div class="mx-auto flex max-w-7xl items-center justify-between gap-5 px-5 py-4 lg:px-8">
-            <a href="{{ route('home') }}" class="text-lg font-bold tracking-[0.18em] text-brand" aria-label="Kaiyo — Trang chủ">KAIYO</a>
+            <a href="{{ route('home') }}" class="shrink-0 rounded-control transition hover:opacity-90" aria-label="Kaiyo — Trang chủ">
+                <img src="{{ asset('images/design/logo/logo-kaiyo-wat-1024x560.webp') }}" alt="Kaiyo" width="1024" height="560" class="h-12 w-auto object-contain sm:h-14">
+            </a>
             <nav class="hidden items-center gap-7 text-sm font-medium md:flex" aria-label="Điều hướng chính">
-                <a class="hover:text-brand" href="{{ route('public.search') }}">Sản phẩm</a>
-                <a class="hover:text-brand" href="{{ route('public.about') }}">Giới thiệu</a>
-                <a class="hover:text-brand" href="{{ route('public.contact') }}">Liên hệ</a>
+                <a class="inline-flex items-center gap-2 transition hover:text-brand" href="{{ route('public.search') }}"><x-heroicon-o-magnifying-glass class="size-4" aria-hidden="true" />Sản phẩm</a>
+                <a class="inline-flex items-center gap-2 transition hover:text-brand" href="{{ route('public.projects') }}"><x-heroicon-o-building-office-2 class="size-4" aria-hidden="true" />Dự án</a>
+                <a class="inline-flex items-center gap-2 transition hover:text-brand" href="{{ route('public.about') }}"><x-heroicon-o-information-circle class="size-4" aria-hidden="true" />Giới thiệu</a>
+                <a class="inline-flex items-center gap-2 transition hover:text-brand" href="{{ route('public.contact') }}"><x-heroicon-o-phone class="size-4" aria-hidden="true" />Liên hệ</a>
             </nav>
             <div class="hidden items-center gap-3 md:flex">
-                <x-ui.button :href="route('public.cart')" variant="ghost" size="sm">Giỏ hàng</x-ui.button>
+                <x-ui.button :href="route('public.cart')" variant="ghost" size="sm" icon="shopping-cart">Giỏ hàng</x-ui.button>
                 @auth
-                    <x-ui.button :href="route('account')" variant="secondary" size="sm">Tài khoản</x-ui.button>
+                    <x-ui.button :href="route('account')" variant="secondary" size="sm" icon="user-circle">Tài khoản</x-ui.button>
                 @else
-                    <x-ui.button :href="route('login')" variant="ghost" size="sm">Đăng nhập</x-ui.button>
-                    <x-ui.button :href="route('register')" size="sm">Đăng ký</x-ui.button>
+                    <x-ui.button :href="route('login')" variant="ghost" size="sm" icon="arrow-right-end-on-rectangle">Đăng nhập</x-ui.button>
+                    <x-ui.button :href="route('register')" size="sm" icon="user-plus">Đăng ký</x-ui.button>
                 @endauth
             </div>
             <details class="relative md:hidden">
-                <summary class="cursor-pointer rounded-control border border-line px-3 py-2 text-sm font-semibold">Menu</summary>
+                <summary class="flex cursor-pointer list-none items-center gap-2 rounded-control border border-line px-3 py-2 text-sm font-semibold"><x-heroicon-o-bars-3 class="size-5" aria-hidden="true" />Menu</summary>
                 <nav class="absolute right-0 z-20 mt-2 grid min-w-52 gap-1 rounded-panel border border-line bg-surface p-3 shadow-panel" aria-label="Điều hướng di động">
-                    <a class="rounded-control px-3 py-2 hover:bg-surface-muted" href="{{ route('public.search') }}">Sản phẩm</a>
-                    <a class="rounded-control px-3 py-2 hover:bg-surface-muted" href="{{ route('public.about') }}">Giới thiệu</a>
-                    <a class="rounded-control px-3 py-2 hover:bg-surface-muted" href="{{ route('public.contact') }}">Liên hệ</a>
-                    <a class="rounded-control px-3 py-2 hover:bg-surface-muted" href="{{ route('public.cart') }}">Giỏ hàng</a>
-                    <a class="rounded-control px-3 py-2 text-brand hover:bg-brand-soft" href="{{ auth()->check() ? route('account') : route('login') }}">{{ auth()->check() ? 'Tài khoản' : 'Đăng nhập' }}</a>
+                    <a class="flex items-center gap-3 rounded-control px-3 py-2 hover:bg-surface-muted" href="{{ route('public.search') }}"><x-heroicon-o-magnifying-glass class="size-5" aria-hidden="true" />Sản phẩm</a>
+                    <a class="flex items-center gap-3 rounded-control px-3 py-2 hover:bg-surface-muted" href="{{ route('public.projects') }}"><x-heroicon-o-building-office-2 class="size-5" aria-hidden="true" />Dự án</a>
+                    <a class="flex items-center gap-3 rounded-control px-3 py-2 hover:bg-surface-muted" href="{{ route('public.about') }}"><x-heroicon-o-information-circle class="size-5" aria-hidden="true" />Giới thiệu</a>
+                    <a class="flex items-center gap-3 rounded-control px-3 py-2 hover:bg-surface-muted" href="{{ route('public.contact') }}"><x-heroicon-o-phone class="size-5" aria-hidden="true" />Liên hệ</a>
+                    <a class="flex items-center gap-3 rounded-control px-3 py-2 hover:bg-surface-muted" href="{{ route('public.cart') }}"><x-heroicon-o-shopping-cart class="size-5" aria-hidden="true" />Giỏ hàng</a>
+                    <a class="flex items-center gap-3 rounded-control px-3 py-2 text-brand hover:bg-brand-soft" href="{{ auth()->check() ? route('account') : route('login') }}"><x-heroicon-o-user-circle class="size-5" aria-hidden="true" />{{ auth()->check() ? 'Tài khoản' : 'Đăng nhập' }}</a>
                 </nav>
             </details>
         </div>
@@ -48,11 +52,12 @@
     <footer class="mt-20 border-t border-line bg-surface">
         <div class="mx-auto grid max-w-7xl gap-8 px-5 py-10 text-sm text-ink-muted sm:grid-cols-2 lg:px-8">
             <div>
-                <p class="font-bold tracking-[0.18em] text-brand">KAIYO</p>
+                <img src="{{ asset('images/design/logo/logo-kaiyo-wat-1024x560.webp') }}" alt="Kaiyo" width="1024" height="560" loading="lazy" class="h-16 w-auto object-contain">
                 <p class="mt-3 max-w-md">Nền tảng thương mại và báo giá phục vụ khách hàng cá nhân và doanh nghiệp.</p>
             </div>
             <nav class="flex flex-wrap gap-x-6 gap-y-3 sm:justify-end" aria-label="Điều hướng chân trang">
                 <a class="hover:text-brand" href="{{ route('public.search') }}">Sản phẩm</a>
+                <a class="hover:text-brand" href="{{ route('public.projects') }}">Dự án</a>
                 <a class="hover:text-brand" href="{{ route('public.about') }}">Giới thiệu</a>
                 <a class="hover:text-brand" href="{{ route('public.contact') }}">Liên hệ</a>
             </nav>

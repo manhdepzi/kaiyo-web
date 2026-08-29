@@ -7,6 +7,7 @@ namespace App\Modules\Shipping\Application\Actions;
 use App\Modules\Checkout\Infrastructure\Persistence\Models\Order;
 use App\Modules\Order\Application\Actions\AdvanceOrder;
 use App\Modules\Shipping\Application\Data\VerifiedCarrierEvent;
+use App\Modules\Shipping\Application\Services\ShipmentStateFactRecorder;
 use App\Modules\Shipping\Infrastructure\CarrierRegistry;
 use App\Modules\Shipping\Infrastructure\Persistence\Models\CarrierEvent;
 use App\Modules\Shipping\Infrastructure\Persistence\Models\Shipment;
@@ -15,7 +16,7 @@ use Illuminate\Support\Facades\DB;
 
 final readonly class ProcessCarrierEvent
 {
-    public function __construct(private CarrierRegistry $carriers, private AdvanceOrder $orders) {}
+    public function __construct(private CarrierRegistry $carriers, private AdvanceOrder $orders, private ShipmentStateFactRecorder $stateFacts) {}
 
     /** @param array<string, string> $headers */
     public function execute(string $carrierCode, string $rawBody, array $headers): CarrierEvent
@@ -73,6 +74,7 @@ final readonly class ProcessCarrierEvent
                 'shipment_id' => $shipment->getKey(), 'action' => 'tracking', 'result_state' => $event->mappedState,
                 'result_version' => $newVersion, 'evidence' => json_encode(['carrier' => $carrierCode, 'event_hash' => hash('sha256', $event->eventId)], JSON_THROW_ON_ERROR), 'created_at' => now(),
             ]);
+            $this->stateFacts->record($shipment, $from);
 
             return CarrierEvent::query()->create($this->receipt($carrierCode, $rawBody, $eventHash, $event, (int) $shipment->getKey(), 'applied', null));
         }, 3);

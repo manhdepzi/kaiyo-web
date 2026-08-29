@@ -17,6 +17,7 @@ Implement one Shipment per V1 Order, complete Shipment-item lineage, configured/
 - [x] Missing carrier adapters fail closed; carrier timeout/unknown result opens reconciliation without blocking the commerce core or duplicating a booking.
 - [x] Carrier events are adapter-authenticated, bounded, durably deduplicated, conflict-checked and monotonic; late/out-of-order events cannot regress terminal truth.
 - [x] Tracking correction is permission-gated, append-only and forbidden after Delivered.
+- [x] Every actual Shipment state/version change persists one minimal outbox fact atomically; exact booking/warehouse/webhook retries emit no duplicate fact.
 
 ## Evidence
 
@@ -25,6 +26,8 @@ Implement one Shipment per V1 Order, complete Shipment-item lineage, configured/
 - `ManageShipmentLifecycle` invokes `AdvanceOrder` for pack/dispatch; no Shipping code writes Order or Inventory state directly.
 - `CarrierRegistry` and `CarrierAdapter` isolate provider behavior. Booking calls occur outside the database transaction; timeout becomes visible `booking_unknown` plus one open reconciliation case, while an unregistered carrier is rejected before the call.
 - `ProcessCarrierEvent` verifies the adapter signature before persistence, rejects identity replay with changed payload, applies only monotonic state and uses the Order action for delivery. `CorrectTracking` retains original event evidence.
+- `ShipmentStateFactRecorder` covers warehouse, booked/unknown, tracking, correction and Delivered transitions with Shipment public ID/version identity. Payloads exclude tracking/carrier evidence, addresses, Customer/Order and actor details.
+- Current focused Shipping regression passes 4 tests/33 assertions plus one intentional MySQL-only trigger skip.
 - SQLite Shipping suite passes 4 tests/30 assertions plus one intentional MySQL-only trigger test; full suite passes 85 tests/571 assertions with three intentional MySQL-only skips.
 - MySQL 8.4 combined critical suite passes 37 tests/182 assertions. Shipping exposes seven CHECK constraints and seven evidence triggers; mutation/delete rejection and standalone rollback/re-migrate pass.
 - PHPStan level 8 and Pint pass. The isolated `kaiyo_test` schema was removed after verification; live `kaiyo` remained unchanged at zero tables.

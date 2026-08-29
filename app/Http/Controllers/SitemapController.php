@@ -16,6 +16,7 @@ final class SitemapController
             ['loc' => route('public.about'), 'lastmod' => null],
             ['loc' => route('public.contact'), 'lastmod' => null],
             ['loc' => route('public.faq'), 'lastmod' => null],
+            ['loc' => route('public.projects'), 'lastmod' => null],
         ];
         $urls = [...$urls, ...$this->catalogUrls('categories', 'public.category'), ...$this->catalogUrls('brands', 'public.brand'), ...$this->productUrls()];
         $pages = DB::table('pages')->where('status', 'published')->whereNull('deleted_at')->whereNotNull('published_revision_id')->orderBy('id')->get(['slug', 'updated_at']);

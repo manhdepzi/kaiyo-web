@@ -15,6 +15,8 @@ use Illuminate\Support\Facades\DB;
 
 final class InventoryReservationService
 {
+    public function __construct(private readonly InventoryAvailabilityFactRecorder $availabilityFacts) {}
+
     /** @param list<array{stock_balance_id: int, quantity: string|int}> $items */
     public function reserve(string $sourceType, string $sourcePublicId, string $operationKey, array $items, ?string $paymentMethod = null): InventoryReservation
     {
@@ -77,6 +79,7 @@ final class InventoryReservationService
                     $balance->forceFill(['reserved_qty' => InventoryQuantity::fromUnits($newReserved)->decimal(), 'lock_version' => $balance->lock_version + 1])->save();
                     ReservationItem::query()->create(['inventory_reservation_id' => $reservation->getKey(), 'stock_balance_id' => $balanceId, 'quantity' => $quantity->decimal(), 'status' => 'active']);
                     $this->movement($balanceId, 'reservation_created', '0.0000', $quantity->decimal(), $sourceType, $sourcePublicId, $operationKey.':'.$balanceId);
+                    $this->availabilityFacts->record($balance, 'reserved');
                 }
 
                 return $reservation->load('items');
@@ -92,10 +95,20 @@ final class InventoryReservationService
 
     public function verifyPayment(InventoryReservation $reservation): InventoryReservation
     {
+        $protected = $this->protectFromExpiryAfterVerifiedPayment($reservation);
+        if ($protected->status !== 'active') {
+            throw new DomainException('Only an active reservation can verify payment.');
+        }
+
+        return $protected;
+    }
+
+    public function protectFromExpiryAfterVerifiedPayment(InventoryReservation $reservation): InventoryReservation
+    {
         return DB::transaction(function () use ($reservation): InventoryReservation {
             $locked = InventoryReservation::query()->whereKey($reservation->getKey())->lockForUpdate()->firstOrFail();
             if ($locked->status !== 'active') {
-                throw new DomainException('Only an active reservation can verify payment.');
+                return $locked->refresh();
             }
             if ($locked->payment_verified_at === null) {
                 $locked->forceFill(['payment_verified_at' => now(), 'awaiting_payment_confirmation' => false, 'expires_at' => null, 'lock_version' => $locked->lock_version + 1])->save();
@@ -159,6 +172,8 @@ final class InventoryReservationService
                 $item->forceFill(['status' => $target, 'lock_version' => $item->lock_version + 1])->save();
                 $type = ['released' => 'reservation_released', 'committed' => 'reservation_committed', 'expired' => 'reservation_expired'][$target];
                 $this->movement((int) $balance->getKey(), $type, InventoryQuantity::fromUnits($onHandDelta)->decimal(), InventoryQuantity::fromUnits(-$quantity->units)->decimal(), $locked->source_type, $locked->source_public_id, $operationKey.':'.$balance->getKey());
+                $changeType = ['released' => 'released', 'committed' => 'committed', 'expired' => 'expired'][$target];
+                $this->availabilityFacts->record($balance, $changeType);
             }
             $timestampColumn = ['released' => 'released_at', 'committed' => 'committed_at', 'expired' => 'expired_at'][$target];
             $locked->forceFill(['status' => $target, $timestampColumn => $effectiveAt, 'lock_version' => $locked->lock_version + 1])->save();

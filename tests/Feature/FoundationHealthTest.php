@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Http\Middleware\AssignCorrelationId;
+use Illuminate\Cache\CacheManager;
 use Illuminate\Support\Str;
+use RuntimeException;
 use Tests\TestCase;
 
 final class FoundationHealthTest extends TestCase
@@ -20,12 +22,57 @@ final class FoundationHealthTest extends TestCase
 
     public function test_readiness_is_sanitized_and_ready_when_optional_checks_are_disabled(): void
     {
-        $this->get('/ready')
+        config()->set('health.check_database', false);
+        config()->set('health.check_cache', false);
+
+        $response = $this->get('/ready')
             ->assertOk()
             ->assertExactJson([
                 'status' => 'ready',
                 'checks' => ['application' => 'ok'],
             ]);
+
+        self::assertFalse($response->headers->has('Set-Cookie'));
+    }
+
+    public function test_readiness_checks_enabled_dependencies_without_starting_a_session(): void
+    {
+        config()->set('health.check_database', true);
+        config()->set('health.check_cache', true);
+
+        $response = $this->get('/ready')
+            ->assertOk()
+            ->assertExactJson([
+                'status' => 'ready',
+                'checks' => [
+                    'application' => 'ok',
+                    'database' => 'ok',
+                    'cache' => 'ok',
+                ],
+            ]);
+
+        self::assertFalse($response->headers->has('Set-Cookie'));
+    }
+
+    public function test_readiness_dependency_failure_is_sanitized_and_returns_service_unavailable(): void
+    {
+        config()->set('health.check_database', false);
+        config()->set('health.check_cache', true);
+        $cache = $this->mock(CacheManager::class);
+        $cache->shouldReceive('store')->once()->andThrow(new RuntimeException('sensitive dependency detail'));
+
+        $response = $this->get('/ready')
+            ->assertServiceUnavailable()
+            ->assertExactJson([
+                'status' => 'unavailable',
+                'checks' => [
+                    'application' => 'ok',
+                    'dependencies' => 'failed',
+                ],
+            ])
+            ->assertDontSee('sensitive dependency detail');
+
+        self::assertFalse($response->headers->has('Set-Cookie'));
     }
 
     public function test_valid_correlation_id_is_preserved(): void

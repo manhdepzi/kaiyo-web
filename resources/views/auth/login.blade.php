@@ -10,7 +10,7 @@
         <input name="remember" type="checkbox" value="1" class="size-5 rounded border-line bg-surface text-brand">
         Ghi nhớ đăng nhập
     </label>
-    <x-ui.button type="submit" class="w-full">Đăng nhập</x-ui.button>
+    <x-ui.button type="submit" class="w-full" icon="arrow-right-end-on-rectangle">Đăng nhập</x-ui.button>
 </form>
 <div class="mt-5 flex justify-between gap-4 text-sm">
     <a class="text-brand hover:underline" href="{{ route('password.request') }}">Quên mật khẩu?</a>

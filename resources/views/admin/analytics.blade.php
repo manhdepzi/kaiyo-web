@@ -18,7 +18,7 @@
             </select>
         </div>
         <x-ui.input name="destination" label="Destination" :value="$destination" placeholder="ga4" />
-        <x-ui.button type="submit" variant="secondary">Lọc</x-ui.button>
+        <x-ui.button type="submit" variant="secondary" icon="funnel">Lọc</x-ui.button>
     </form>
 
     <div class="mt-8 space-y-3">

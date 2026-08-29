@@ -2,7 +2,7 @@
 
 ## Control
 
-- Status: `BOOTSTRAPPED — INSTRUMENTATION/ALERT EXERCISES PENDING`
+- Status: `IN PROGRESS — LOCAL DEPENDENCY PROBE PASSED; INSTRUMENTATION/ALERT EXERCISES PENDING`
 - SLO source: D006-A2 (99.95% monthly; RPO 15m; RTO 2h) and performance budgets
 - Provider/tool binding: open under D-007; instrumentation uses standard application interfaces/config
 
@@ -49,5 +49,18 @@ Numerical alert thresholds beyond approved SLO budgets remain deploy-time config
 - exception/error reporting adapter interface with local/log implementation;
 - queue failure/outbox metrics hooks;
 - environment validation for log level/channel and no production debug.
+
+## Local executable evidence
+
+- Local targets: application `http://127.0.0.1:8000`, MySQL `127.0.0.1:3306/kaiyo` and Redis `127.0.0.1:6379` from the `kaiyo-redis` container.
+- Migrations `000001`–`000018` ran successfully as batch 1 on the empty local `kaiyo` schema; no fresh/reset/rollback command was used.
+- `/ready` is stateless: session, cookie and request-forgery middleware are excluded while correlation and route binding remain.
+- Enabled MySQL and Redis checks return HTTP 200 with bounded `application`, `database` and `cache` results.
+- A simulated cache exception returns sanitized HTTP 503 without the exception detail or any session/XSRF cookie.
+- Foundation health suite: 6 passed / 17 assertions; Outbox suite: 7 passed / 45 assertions; full regression: 182 passed / 1268 assertions with four documented MySQL-only skips.
+- The local `kaiyo` schema applied migrations `000001`–`000018`; home, search and readiness HTTP smoke checks pass.
+- `php artisan schedule:list` confirms the CMS publication and outbox relay jobs are registered every minute while Redis is healthy.
+- `php artisan outbox:status --json` reports bounded state counts and oldest ages without payload/error details; alert exit codes activate only with deployment-supplied age/dead-record gates.
+- Disposable schema `kaiyo_step48_verify_20260827` ran all 18 migrations and the two-process outbox probe: workers split 6/6 and all 12 facts reached `published` with exactly one attempt. The exact disposable schema was then dropped; live `kaiyo` retained all 18 migrations and an empty healthy outbox.
 
 Dashboards, actionable alerts, synthetic failure and alert-fire evidence remain pending provider binding/executable system.

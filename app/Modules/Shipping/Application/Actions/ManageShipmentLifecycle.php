@@ -9,6 +9,7 @@ use App\Modules\Identity\Authorization\AuthorizationScope;
 use App\Modules\Identity\Contracts\PermissionAuthorizer;
 use App\Modules\Identity\Infrastructure\Persistence\Models\UserAccount;
 use App\Modules\Order\Application\Actions\AdvanceOrder;
+use App\Modules\Shipping\Application\Services\ShipmentStateFactRecorder;
 use App\Modules\Shipping\Infrastructure\Persistence\Models\Shipment;
 use DomainException;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -16,7 +17,7 @@ use Illuminate\Support\Facades\DB;
 
 final readonly class ManageShipmentLifecycle
 {
-    public function __construct(private PermissionAuthorizer $authorizer, private AdvanceOrder $orders) {}
+    public function __construct(private PermissionAuthorizer $authorizer, private AdvanceOrder $orders, private ShipmentStateFactRecorder $stateFacts) {}
 
     public function ready(Shipment $shipment, string $operationKey, int $expectedVersion, UserAccount $actor): Shipment
     {
@@ -72,6 +73,7 @@ final readonly class ManageShipmentLifecycle
             if ($action === 'dispatch') {
                 $this->orders->execute($order, 'shipping', 'shipment-dispatch:'.$operationKey, $order->lock_version, 'dispatch_confirmed', $locked->public_id);
             }
+            $from = $locked->state;
             $values = ['state' => $target, 'lock_version' => $expectedVersion + 1];
             $timestamp = ['ready' => 'ready_at', 'pack' => 'packed_at', 'dispatch' => 'dispatched_at'][$action];
             $values[$timestamp] = now();
@@ -83,6 +85,7 @@ final readonly class ManageShipmentLifecycle
                 'operation_key' => $operationKey, 'request_hash' => $hash, 'shipment_id' => $locked->getKey(), 'action' => $action,
                 'result_state' => $target, 'result_version' => $expectedVersion + 1, 'evidence' => json_encode($evidence, JSON_THROW_ON_ERROR), 'created_at' => now(),
             ]);
+            $this->stateFacts->record($locked, $from);
 
             return $locked->refresh();
         }, 3);

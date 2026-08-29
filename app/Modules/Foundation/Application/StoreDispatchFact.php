@@ -15,6 +15,11 @@ final class StoreDispatchFact
     private const CATALOG = [
         'catalog.projection.changed' => 1,
         'commerce.order.placed' => 1,
+        'commerce.order.state.changed' => 1,
+        'inventory.availability.changed' => 1,
+        'payment.verified' => 1,
+        'quotation.revision.state.changed' => 1,
+        'shipping.shipment.state.changed' => 1,
     ];
 
     public function record(DispatchFact $fact): void

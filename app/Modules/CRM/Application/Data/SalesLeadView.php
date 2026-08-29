@@ -20,5 +20,8 @@ final readonly class SalesLeadView
         public ?string $convertedCompanyPublicId,
         public bool $canUpdate,
         public bool $canConvert,
+        public ?string $inquiryTopic = null,
+        public ?string $inquiryMessage = null,
+        public ?string $inquirySubmittedAt = null,
     ) {}
 }

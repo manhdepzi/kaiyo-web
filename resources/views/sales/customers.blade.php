@@ -19,7 +19,7 @@
         <form method="GET" action="{{ route('sales.customers') }}" class="grid gap-4 md:grid-cols-[1fr_14rem_auto] md:items-end">
             <x-ui.input name="q" label="Từ khóa" :value="$directory->query" autocomplete="off" />
             <div><label for="customer-status" class="block text-sm font-medium">Trạng thái</label><select id="customer-status" name="status" class="mt-2 min-h-11 w-full rounded-control border border-line bg-surface px-3 py-2"><option value="">Tất cả</option><option value="active" @selected($directory->status === 'active')>Đang hoạt động</option><option value="inactive" @selected($directory->status === 'inactive')>Không hoạt động</option></select></div>
-            <x-ui.button type="submit">Áp dụng</x-ui.button>
+            <x-ui.button type="submit" icon="funnel">Áp dụng</x-ui.button>
         </form>
     </x-ui.card>
 

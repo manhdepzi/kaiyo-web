@@ -19,7 +19,7 @@
     @endif
     @if (count($cart->lines) === 0)
         <x-ui.empty-state class="mt-8" title="Giỏ hàng đang trống" description="Bạn cần ít nhất một sản phẩm trước khi thanh toán.">
-            <x-ui.button :href="route('public.search')">Tìm sản phẩm</x-ui.button>
+            <x-ui.button :href="route('public.search')" icon="magnifying-glass">Tìm sản phẩm</x-ui.button>
         </x-ui.empty-state>
     @else
         <form method="POST" action="{{ route('public.checkout.place') }}" class="mt-8 grid gap-8 lg:grid-cols-[1fr_20rem]">
@@ -65,8 +65,8 @@
                     @endforeach
                     @error('payment_method')<p class="mt-2 text-sm text-danger">{{ $message }}</p>@enderror
                 </x-ui.card>
-                <x-ui.button type="submit" class="w-full" :disabled="!$customerLinked || count($shippingMethods) === 0">Đặt hàng an toàn</x-ui.button>
-                <x-ui.button :href="route('public.cart')" variant="ghost" class="w-full">Quay lại giỏ hàng</x-ui.button>
+                <x-ui.button type="submit" class="w-full" :disabled="!$customerLinked || count($shippingMethods) === 0" icon="lock-closed">Đặt hàng an toàn</x-ui.button>
+                <x-ui.button :href="route('public.cart')" variant="ghost" class="w-full" icon="arrow-left">Quay lại giỏ hàng</x-ui.button>
             </aside>
         </form>
     @endif

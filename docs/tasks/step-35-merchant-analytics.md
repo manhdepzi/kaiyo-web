@@ -24,12 +24,15 @@
 - [x] Provider-neutral `AnalyticsDestination` contract uses an explicit disabled adapter by default.
 - [x] Private read-only Analytics monitor requires `analytics.read`, confirmed staff 2FA and `no-store, private` responses.
 - [x] B2C Checkout and B2B Quote conversion persist versioned `commerce.order.placed` facts atomically through the ADR-0004 outbox; rollback leaves no orphan fact.
+- [x] Verified Payment persists a versioned `payment.verified` fact without raw financial references; reliable consumption confirms the Order or opens late-payment reconciliation.
 - [x] Scheduled relay uses durable claims, stable event identity, bounded retry, stale-lease recovery and dead-letter evidence.
+- [x] Inventory adjustment/reserve/release/commit/expiry now persists `inventory.availability.changed` atomically with a versioned Stock Balance; the fact contains only opaque Variant/Warehouse identities, change type and balance version so future Merchant/observability consumers must rebuild from Inventory truth.
+- [x] Approved Order forward transitions and cancellation now persist `commerce.order.state.changed` atomically with the Order version; exact command retries cannot duplicate facts and the payload excludes customer, payment, shipment, actor and evidence details.
 
 ## Verification evidence
 
 - Merchant and Analytics focused: 8 passed / 51 assertions.
-- Full regression: 176 passed / 1235 assertions; four MySQL-only immutable-trigger tests are documented skips on SQLite.
+- Full regression: 182 passed / 1268 assertions; four MySQL-only immutable-trigger tests are documented skips on SQLite.
 - PHPStan level 8, Pint, production asset build and `git diff --check` pass for the implemented slice.
 
 ## Remaining

@@ -5,7 +5,7 @@
 
 @section('content')
 <section class="mx-auto max-w-5xl px-5 py-12 lg:px-8">
-    <a href="{{ route('account') }}" class="text-sm font-semibold text-brand hover:underline">← Quay lại tài khoản</a>
+    <a href="{{ route('account') }}" class="inline-flex items-center gap-2 text-sm font-semibold text-brand hover:underline"><x-heroicon-o-arrow-left class="size-4" aria-hidden="true" />Quay lại tài khoản</a>
     <div class="mt-5 flex flex-wrap items-start justify-between gap-4"><div><p class="text-sm text-ink-muted">Đơn hàng</p><h1 class="mt-1 text-3xl font-bold">{{ $order->publicId }}</h1></div><x-ui.badge tone="success">{{ $order->state }}</x-ui.badge></div>
     <div class="mt-8 grid gap-5 sm:grid-cols-3">
         <x-ui.card title="Thanh toán"><p class="font-semibold">{{ $order->paymentState ?? 'Chưa khởi tạo' }}</p><p class="mt-1 text-sm text-ink-muted">{{ $order->paymentMethod }}</p></x-ui.card>

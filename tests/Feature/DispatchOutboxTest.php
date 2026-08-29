@@ -14,6 +14,7 @@ use App\Modules\Identity\Infrastructure\Persistence\Models\ScopedGrant;
 use App\Modules\Identity\Infrastructure\Persistence\Models\UserAccount;
 use DomainException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use RuntimeException;
@@ -118,6 +119,66 @@ final class DispatchOutboxTest extends TestCase
             ->assertSee('provideroutage')
             ->assertDontSee('reservation-order-004')
             ->assertDontSee('payload_hash');
+    }
+
+    public function test_status_command_is_read_only_safe_and_only_enforces_explicit_gates(): void
+    {
+        app(StoreDispatchFact::class)->record($this->fact('order-status-pending'));
+        app(StoreDispatchFact::class)->record($this->fact('order-status-publishing'));
+        app(StoreDispatchFact::class)->record($this->fact('order-status-dead'));
+        DB::table('dispatch_records')->where('aggregate_public_id', 'order-status-publishing')->update([
+            'state' => 'publishing',
+            'claimed_at' => now()->subMinutes(5),
+            'updated_at' => now(),
+        ]);
+        DB::table('dispatch_records')->where('aggregate_public_id', 'order-status-dead')->update([
+            'state' => 'dead',
+            'last_error_code' => 'secret-provider-detail',
+            'updated_at' => now(),
+        ]);
+        DB::table('dispatch_records')->where('aggregate_public_id', 'order-status-pending')->update([
+            'created_at' => now()->subMinutes(5),
+            'updated_at' => now(),
+        ]);
+
+        self::assertSame(0, Artisan::call('outbox:status', ['--json' => true]));
+        $output = Artisan::output();
+        self::assertStringNotContainsString('secret-provider-detail', $output);
+        self::assertStringNotContainsString('reservation-order-status', $output);
+        /** @var array<string, mixed> $decoded */
+        $decoded = json_decode(trim($output), true, flags: JSON_THROW_ON_ERROR);
+        self::assertTrue($decoded['healthy']);
+        self::assertSame(1, $decoded['counts']['pending']);
+        self::assertSame(1, $decoded['counts']['publishing']);
+        self::assertSame(1, $decoded['counts']['dead']);
+
+        self::assertSame(1, Artisan::call('outbox:status', [
+            '--json' => true,
+            '--max-pending-age' => '60',
+            '--max-publishing-age' => '60',
+            '--fail-on-dead' => true,
+        ]));
+        /** @var array<string, mixed> $gated */
+        $gated = json_decode(trim(Artisan::output()), true, flags: JSON_THROW_ON_ERROR);
+        self::assertFalse($gated['healthy']);
+        self::assertCount(3, $gated['violations']);
+        self::assertSame(3, DB::table('dispatch_records')->count());
+    }
+
+    public function test_status_command_rejects_invalid_threshold_without_querying_or_mutating(): void
+    {
+        self::assertSame(2, Artisan::call('outbox:status', ['--max-pending-age' => '-1']));
+        self::assertSame(0, DB::table('dispatch_records')->count());
+    }
+
+    public function test_concurrency_probe_refuses_non_isolated_database_without_mutation(): void
+    {
+        if (DB::getDriverName() === 'mysql') {
+            $this->markTestSkipped('The committed multi-process probe runs after the transactional MySQL suite.');
+        }
+
+        self::assertSame(1, Artisan::call('outbox:concurrency-probe'));
+        self::assertSame(0, DB::table('dispatch_records')->count());
     }
 
     private function fact(string $orderPublicId): DispatchFact

@@ -19,6 +19,9 @@ use App\Modules\Checkout\Contracts\ShippingPreparationPort;
 use App\Modules\Checkout\Contracts\TaxCalculationPort;
 use App\Modules\Checkout\Infrastructure\Persistence\Models\Order;
 use App\Modules\CRM\Infrastructure\Persistence\Models\Customer;
+use App\Modules\Foundation\Application\PublishDispatchRecord;
+use App\Modules\Foundation\Application\RelayDispatchRecords;
+use App\Modules\Foundation\Infrastructure\Persistence\Models\DispatchRecord;
 use App\Modules\Identity\Authorization\AuthorizationScope;
 use App\Modules\Identity\Infrastructure\Persistence\Models\PermissionDefinition;
 use App\Modules\Identity\Infrastructure\Persistence\Models\ScopedGrant;
@@ -70,6 +73,38 @@ final class OrderLifecycleTest extends TestCase
         $completed = $advance->execute($delivered, 'completed', 'complete-1', 5, 'completion_policy', 'COMPLETE-1');
         self::assertSame('completed', $completed->state);
         self::assertSame(7, DB::table('order_status_history')->where('order_id', $order->getKey())->count());
+
+        $facts = DB::table('dispatch_records')
+            ->where('event_type', 'commerce.order.state.changed')
+            ->where('aggregate_public_id', $order->public_id)
+            ->orderBy('id')
+            ->get();
+        self::assertCount(6, $facts);
+        self::assertSame(
+            ['confirmed', 'processing', 'packed', 'shipping', 'delivered', 'completed'],
+            $facts->map(fn (object $fact): string => (string) json_decode((string) $fact->payload, true, 512, JSON_THROW_ON_ERROR)['to_state'])->all(),
+        );
+        self::assertSame([1, 2, 3, 4, 5, 6], $facts->map(
+            fn (object $fact): int => (int) json_decode((string) $fact->payload, true, 512, JSON_THROW_ON_ERROR)['order_version'],
+        )->all());
+
+        $relay = app(RelayDispatchRecords::class)->execute(50);
+        self::assertSame(0, $relay['failed']);
+        self::assertSame(6, DB::table('notifications')->where('order_id', $order->getKey())->count());
+        self::assertSame(6, DB::table('notification_attempts')->count());
+        self::assertSame(
+            ['order.confirmed', 'order.processing', 'order.packed', 'order.shipping', 'order.delivered', 'order.completed'],
+            DB::table('notifications')->where('order_id', $order->getKey())->orderBy('id')->pluck('template_key')->all(),
+        );
+
+        $firstStateFact = DispatchRecord::query()
+            ->where('event_type', 'commerce.order.state.changed')
+            ->where('aggregate_public_id', $order->public_id)
+            ->orderBy('id')
+            ->firstOrFail();
+        app(PublishDispatchRecord::class)->publish($firstStateFact);
+        self::assertSame(6, DB::table('notifications')->where('order_id', $order->getKey())->count());
+        self::assertSame(6, DB::table('notification_attempts')->count());
     }
 
     public function test_cancellation_requires_scoped_request_distinct_decider_and_releases_inventory(): void
@@ -105,6 +140,36 @@ final class OrderLifecycleTest extends TestCase
         self::assertSame(0, InventoryQuantity::from((string) $balance->refresh()->reserved_qty)->units);
         self::assertSame('void_or_refund', $approved->payment_compensation['action']);
         self::assertSame(1, DB::table('stock_movements')->where('type', 'reservation_released')->count());
+        $fact = DB::table('dispatch_records')
+            ->where('event_type', 'commerce.order.state.changed')
+            ->where('aggregate_public_id', $order->public_id)
+            ->sole();
+        self::assertSame(
+            ['from_state' => 'pending', 'order_version' => 1, 'to_state' => 'cancelled'],
+            json_decode((string) $fact->payload, true, 512, JSON_THROW_ON_ERROR),
+        );
+    }
+
+    public function test_order_state_and_fact_roll_back_together_when_outer_transaction_fails(): void
+    {
+        [$order] = $this->placedOrder();
+
+        try {
+            DB::transaction(function () use ($order): void {
+                app(AdvanceOrder::class)->execute($order, 'confirmed', 'confirm-rollback', 0, 'payment_verified', 'PAY-ROLLBACK');
+                throw new DomainException('Force outer rollback.');
+            });
+            self::fail('The outer transaction must roll back.');
+        } catch (DomainException $exception) {
+            self::assertSame('Force outer rollback.', $exception->getMessage());
+        }
+
+        self::assertSame('pending', $order->refresh()->state);
+        self::assertSame(0, DB::table('order_transition_operations')->where('operation_key', 'confirm-rollback')->count());
+        self::assertSame(0, DB::table('dispatch_records')
+            ->where('event_type', 'commerce.order.state.changed')
+            ->where('aggregate_public_id', $order->public_id)
+            ->count());
     }
 
     public function test_cross_customer_request_and_post_processing_cancellation_fail_closed(): void

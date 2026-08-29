@@ -17,6 +17,7 @@ Implement secure guest and authenticated-Customer quotation creation, determinis
 - [x] D-003 5/15/25 percent and VND 100M/500M edges are exact; below-cost and missing-cost cases fail closed; proposer self-approval is forbidden.
 - [x] Submit, process, approve, issue, view, accept, reject and expire are permission/token, state, version and idempotency guarded.
 - [x] Sent/Accepted financial evidence and Quote roots are protected against mutation/deletion on MySQL.
+- [x] Every actual revision state/version change persists one minimal `quotation.revision.state.changed` fact atomically; repeated view/access evidence without a state change emits no false fact.
 
 ## Evidence
 
@@ -24,6 +25,8 @@ Implement secure guest and authenticated-Customer quotation creation, determinis
 - `CreateQuotationDraft` validates Customer/Company scope or HMAC guest access and delegates all calculations to `QuotationRevisionBuilder`.
 - `CreateQuotationRevision::replace` recalculates changed lines through the same builder; terms-only revision also preserves immutable source snapshots. Approvals never carry to a new revision.
 - `ManageQuotationLifecycle` enforces the exact forward state graph and records actor/guest access evidence without storing raw credentials.
+- `QuotationStateFactRecorder` uses Quote public ID plus revision/version identity and excludes Customer/company, guest credentials, prices, addresses, approval evidence and actors from its payload.
+- Current focused Quotation regression passes 8 tests/66 assertions with one intentional MySQL-only trigger skip; repeated view evidence does not increment the revision or duplicate a fact, and failed conversion retains the pre-existing fact count.
 - `QuotationApprovalPolicy` uses integer-safe boundary comparisons and approved distinct Manager/Finance approval permissions.
 - Full SQLite suite passes 100 tests/622 assertions with four intentional MySQL-only skips. MySQL 8.4 critical suite passes 44 tests/226 assertions; focused Quotation passes 7/44.
 - Standalone rollback removes only the six Step 25 tables and ten triggers while retaining Step 24; re-migration restores six tables, six CHECKs and ten triggers.

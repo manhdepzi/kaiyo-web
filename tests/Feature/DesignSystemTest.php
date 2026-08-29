@@ -25,8 +25,15 @@ final class DesignSystemTest extends TestCase
             ->assertSee('min-h-11', false)
             ->assertSee('bg-brand', false);
 
+        $this->blade('<x-ui.button icon="shopping-cart" size="sm">Thêm vào giỏ</x-ui.button>')
+            ->assertSee('<svg', false)
+            ->assertSee('size-4', false)
+            ->assertSee('aria-hidden="true"', false)
+            ->assertSee('Thêm vào giỏ');
+
         $this->blade('<x-ui.alert tone="danger" title="Lỗi">Kiểm tra lại</x-ui.alert>')
             ->assertSee('role="alert"', false)
+            ->assertSee('<svg', false)
             ->assertSee('Lỗi')
             ->assertSee('Kiểm tra lại');
     }

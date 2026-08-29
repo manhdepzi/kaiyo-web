@@ -16,6 +16,7 @@ Convert exactly one current Accepted quotation revision into exactly one Order, 
 - [x] Inventory allocation and `quote_to_order` reservation occur atomically; insufficient stock rolls back every Order/Payment/Shipment/conversion effect.
 - [x] Revision row locking, one conversion row per revision, one Order per revision and stable request hashes make exact retries and concurrent contenders converge on one result.
 - [x] Converted state and operation/audit lineage are durable and cannot be replayed with different Customer/actor/input.
+- [x] Accepted-to-Converted persists its Quotation state fact in the same transaction; stock failure rolls back the Order effects and conversion fact together.
 
 ## Evidence
 

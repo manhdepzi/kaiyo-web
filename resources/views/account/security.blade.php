@@ -5,7 +5,7 @@
 
 @section('content')
 <section class="mx-auto max-w-5xl px-5 py-12 lg:px-8">
-    <a href="{{ route('account') }}" class="text-sm font-semibold text-brand hover:underline">← Quay lại tài khoản</a>
+    <a href="{{ route('account') }}" class="inline-flex items-center gap-2 text-sm font-semibold text-brand hover:underline"><x-heroicon-o-arrow-left class="size-4" aria-hidden="true" />Quay lại tài khoản</a>
     <div class="mt-5 max-w-3xl">
         <p class="text-sm font-semibold uppercase tracking-widest text-brand">Customer Portal</p>
         <h1 class="mt-3 text-3xl font-bold">Bảo mật tài khoản</h1>
@@ -27,7 +27,7 @@
                 <p class="text-sm text-ink-muted">Dùng ứng dụng tạo mã TOTP để bảo vệ tài khoản.</p>
                 <form method="POST" action="{{ route('two-factor.enable') }}" class="mt-5">
                     @csrf
-                    <x-ui.button type="submit" class="w-full">Bật xác thực hai lớp</x-ui.button>
+                    <x-ui.button type="submit" class="w-full" icon="shield-check">Bật xác thực hai lớp</x-ui.button>
                 </form>
             @elseif (! $account->hasEnabledTwoFactorAuthentication())
                 <x-ui.alert tone="warning" title="Cần xác nhận">Quét mã QR rồi nhập mã hiện tại để hoàn tất thiết lập.</x-ui.alert>
@@ -35,18 +35,18 @@
                 <form method="POST" action="{{ route('two-factor.confirm') }}" class="mt-5 space-y-4">
                     @csrf
                     <x-ui.input name="code" label="Mã xác thực" inputmode="numeric" autocomplete="one-time-code" required />
-                    <x-ui.button type="submit" class="w-full">Xác nhận</x-ui.button>
+                    <x-ui.button type="submit" class="w-full" icon="check-circle">Xác nhận</x-ui.button>
                 </form>
             @else
                 <x-ui.alert tone="success" title="Đang hoạt động">Xác thực hai lớp đã được bật cho tài khoản này.</x-ui.alert>
                 <form method="POST" action="{{ route('two-factor.regenerate-recovery-codes') }}" class="mt-5">
                     @csrf
-                    <x-ui.button type="submit" variant="secondary" class="w-full">Tạo lại mã khôi phục</x-ui.button>
+                    <x-ui.button type="submit" variant="secondary" class="w-full" icon="arrow-path">Tạo lại mã khôi phục</x-ui.button>
                 </form>
                 <form method="POST" action="{{ route('two-factor.disable') }}" class="mt-3">
                     @csrf
                     @method('DELETE')
-                    <x-ui.button type="submit" variant="danger" class="w-full">Tắt xác thực hai lớp</x-ui.button>
+                    <x-ui.button type="submit" variant="danger" class="w-full" icon="shield-exclamation">Tắt xác thực hai lớp</x-ui.button>
                 </form>
             @endif
         </x-ui.card>
@@ -60,7 +60,7 @@
                         <form method="POST" action="{{ route('account.security.sessions.destroy', $session->public_id) }}" class="mt-3">
                             @csrf
                             @method('DELETE')
-                            <x-ui.button type="submit" variant="danger" size="sm">Thu hồi phiên</x-ui.button>
+                            <x-ui.button type="submit" variant="danger" size="sm" icon="x-circle">Thu hồi phiên</x-ui.button>
                         </form>
                     </article>
                 @empty

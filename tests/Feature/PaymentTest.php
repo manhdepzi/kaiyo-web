@@ -17,11 +17,14 @@ use App\Modules\Checkout\Contracts\ShippingPreparationPort;
 use App\Modules\Checkout\Contracts\TaxCalculationPort;
 use App\Modules\Checkout\Infrastructure\Persistence\Models\Order;
 use App\Modules\CRM\Infrastructure\Persistence\Models\Customer;
+use App\Modules\Foundation\Application\RelayDispatchRecords;
 use App\Modules\Identity\Authorization\AuthorizationScope;
 use App\Modules\Identity\Contracts\PermissionAuthorizer;
 use App\Modules\Identity\Infrastructure\Persistence\Models\PermissionDefinition;
 use App\Modules\Identity\Infrastructure\Persistence\Models\ScopedGrant;
 use App\Modules\Identity\Infrastructure\Persistence\Models\UserAccount;
+use App\Modules\Inventory\Application\Services\InventoryReservationService;
+use App\Modules\Inventory\Infrastructure\Persistence\Models\InventoryReservation;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\StockBalance;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\Warehouse;
 use App\Modules\Order\Application\Actions\ManageOrderCancellation;
@@ -57,9 +60,13 @@ final class PaymentTest extends TestCase
         self::assertSame($paid->getKey(), $retry->getKey());
         self::assertSame('paid', $paid->state);
         self::assertSame($paid->payable_amount, $paid->paid_amount);
-        self::assertSame('confirmed', $order->refresh()->state);
+        self::assertSame('pending', $order->refresh()->state);
         self::assertFalse((bool) DB::table('inventory_reservations')->where('id', $order->inventory_reservation_id)->value('awaiting_payment_confirmation'));
         self::assertSame(1, DB::table('payment_transactions')->where('type', 'charge')->count());
+        self::assertSame(1, DB::table('dispatch_records')->where('event_type', 'payment.verified')->count());
+        self::assertStringNotContainsString('BANK-REFERENCE-1', (string) DB::table('dispatch_records')->where('event_type', 'payment.verified')->value('payload'));
+        app(RelayDispatchRecords::class)->execute(100);
+        self::assertSame('confirmed', $order->refresh()->state);
 
         $this->expectException(DomainException::class);
         $service->recordVerifiedCharge($paid, 'bank-verify-different', 'BANK-REFERENCE-2', 'finance');
@@ -115,6 +122,8 @@ final class PaymentTest extends TestCase
         $paidBody = $this->eventBody('evt-2', $payment, 'paid', 'TX-2');
         $processor->execute('fakepay', $paidBody, ['x-signature' => hash_hmac('sha256', $paidBody, 'test-secret')]);
         self::assertSame('paid', $payment->refresh()->state);
+        self::assertSame('pending', $order->refresh()->state);
+        app(RelayDispatchRecords::class)->execute(100);
         self::assertSame('confirmed', $order->refresh()->state);
         $failedBody = $this->eventBody('evt-3', $payment, 'failed', 'TX-3');
         $ignored = $processor->execute('fakepay', $failedBody, ['x-signature' => hash_hmac('sha256', $failedBody, 'test-secret')]);
@@ -129,6 +138,7 @@ final class PaymentTest extends TestCase
         [$order, $customer] = $this->placedOrder('bank_transfer');
         $payment = Payment::query()->where('order_id', $order->getKey())->firstOrFail();
         app(PaymentLifecycleService::class)->recordVerifiedCharge($payment, 'paid-before-cancel', 'BANK-CANCEL-1', 'finance');
+        app(RelayDispatchRecords::class)->execute(100);
         $requester = UserAccount::factory()->create();
         $customer->forceFill(['user_account_id' => $requester->getKey()])->save();
         $decider = UserAccount::factory()->create();
@@ -163,6 +173,23 @@ final class PaymentTest extends TestCase
         self::assertSame('completed', $completed->state);
         self::assertSame('refunded', $payment->refresh()->state);
         self::assertSame(1, DB::table('payment_transactions')->where('type', 'refund')->count());
+    }
+
+    public function test_verified_payment_after_reservation_expiry_opens_reconciliation_without_confirming_order(): void
+    {
+        [$order] = $this->placedOrder('bank_transfer');
+        $reservation = InventoryReservation::query()->findOrFail($order->inventory_reservation_id);
+        app(InventoryReservationService::class)->expire($reservation, 'payment-expiry-race', now()->addDays(2));
+        $payment = Payment::query()->where('order_id', $order->getKey())->firstOrFail();
+
+        $paid = app(PaymentLifecycleService::class)->recordVerifiedCharge($payment, 'late-bank-payment', 'LATE-BANK-REFERENCE', 'reconciliation');
+        app(RelayDispatchRecords::class)->execute(100);
+
+        self::assertSame('paid', $paid->state);
+        self::assertSame('pending', $order->refresh()->state);
+        self::assertSame('expired', $reservation->refresh()->status);
+        self::assertSame(1, DB::table('reconciliation_cases')->where('subject_type', 'payment')->where('reason_code', 'paid_after_reservation_expired')->where('state', 'open')->count());
+        self::assertSame('published', DB::table('dispatch_records')->where('event_type', 'payment.verified')->value('state'));
     }
 
     public function test_mysql_financial_evidence_triggers_reject_mutation_and_deletion(): void

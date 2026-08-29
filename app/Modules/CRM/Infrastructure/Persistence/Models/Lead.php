@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\CRM\Infrastructure\Persistence\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Str;
 
 /**
@@ -25,6 +26,7 @@ use Illuminate\Support\Str;
  * @property int|null $converted_company_id
  * @property string|null $conversion_key_hash
  * @property int $lock_version
+ * @property-read PublicContactSubmission|null $publicContactSubmission
  */
 final class Lead extends Model
 {
@@ -33,6 +35,12 @@ final class Lead extends Model
     protected static function booted(): void
     {
         self::creating(fn (self $model) => $model->public_id = $model->public_id ?: (string) Str::ulid());
+    }
+
+    /** @return HasOne<PublicContactSubmission, $this> */
+    public function publicContactSubmission(): HasOne
+    {
+        return $this->hasOne(PublicContactSubmission::class);
     }
 
     protected function casts(): array

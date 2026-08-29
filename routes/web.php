@@ -5,21 +5,26 @@ use App\Http\Controllers\AccountPortalController;
 use App\Http\Controllers\AccountSecurityController;
 use App\Http\Controllers\AdminAnalyticsController;
 use App\Http\Controllers\AdminAuditController;
+use App\Http\Controllers\AdminCatalogController;
 use App\Http\Controllers\AdminCmsController;
 use App\Http\Controllers\AdminMerchantController;
 use App\Http\Controllers\AdminOutboxController;
 use App\Http\Controllers\AdminPageController;
+use App\Http\Controllers\MarkAccountNotificationReadController;
 use App\Http\Controllers\PublicArticleController;
 use App\Http\Controllers\PublicBrandController;
 use App\Http\Controllers\PublicCartController;
 use App\Http\Controllers\PublicCategoryController;
 use App\Http\Controllers\PublicCheckoutCompleteController;
 use App\Http\Controllers\PublicCheckoutController;
+use App\Http\Controllers\PublicContactController;
 use App\Http\Controllers\PublicFaqController;
 use App\Http\Controllers\PublicHomeController;
 use App\Http\Controllers\PublicLegacySlugController;
+use App\Http\Controllers\PublicMediaController;
 use App\Http\Controllers\PublicPageController;
 use App\Http\Controllers\PublicProductController;
+use App\Http\Controllers\PublicProjectController;
 use App\Http\Controllers\PublicQuotationController;
 use App\Http\Controllers\PublicSearchController;
 use App\Http\Controllers\ReadinessController;
@@ -33,13 +38,22 @@ use App\Http\Controllers\SalesCustomerShowController;
 use App\Http\Controllers\SalesLeadController;
 use App\Http\Controllers\SalesLeadShowController;
 use App\Http\Controllers\SitemapController;
+use App\Http\Middleware\EnsureAccountCanAccess;
+use App\Http\Middleware\TrackAuthenticatedSession;
+use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
+use Illuminate\Cookie\Middleware\EncryptCookies;
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
+use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Route;
+use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 Route::get('/', PublicHomeController::class)->name('home');
 Route::get('/tim-kiem', PublicSearchController::class)->name('public.search');
+Route::get('/du-an', PublicProjectController::class)->name('public.projects');
 Route::get('/danh-muc/{slug}', PublicCategoryController::class)->where('slug', '[a-z0-9-]+')->name('public.category');
 Route::get('/thuong-hieu/{slug}', PublicBrandController::class)->where('slug', '[a-z0-9-]+')->name('public.brand');
 Route::get('/san-pham/{slug}', PublicProductController::class)->where('slug', '[a-z0-9-]+')->name('public.product');
+Route::get('/media/{asset}', PublicMediaController::class)->where('asset', '[0-9A-HJKMNP-TV-Z]{26}')->name('public.media');
 Route::get('/products/{slug}', PublicLegacySlugController::class)->where('slug', '[a-z0-9-]+')->name('legacy.product');
 Route::get('/categories/{slug}', PublicLegacySlugController::class)->where('slug', '[a-z0-9-]+')->name('legacy.category');
 Route::get('/noi-dung/{slug}', PublicPageController::class)->where('slug', '[a-z0-9-]+')->name('public.page');
@@ -61,9 +75,19 @@ Route::post('/bao-gia/{quote}/{action}', [PublicQuotationController::class, 'acc
     ->where('action', 'viewed|accepted|rejected')
     ->name('public.quotation.access');
 Route::view('/gioi-thieu', 'public.about')->name('public.about');
-Route::view('/lien-he', 'public.contact')->name('public.contact');
+Route::get('/lien-he', [PublicContactController::class, 'show'])->name('public.contact');
+Route::post('/lien-he', [PublicContactController::class, 'store'])->name('public.contact.store');
 
 Route::get('/ready', ReadinessController::class)
+    ->withoutMiddleware([
+        EncryptCookies::class,
+        AddQueuedCookiesToResponse::class,
+        StartSession::class,
+        ShareErrorsFromSession::class,
+        PreventRequestForgery::class,
+        EnsureAccountCanAccess::class,
+        TrackAuthenticatedSession::class,
+    ])
     ->name('health.ready');
 
 Route::middleware(['auth', 'verified', 'private.response'])->group(function (): void {
@@ -79,6 +103,9 @@ Route::middleware(['auth', 'verified', 'private.response'])->group(function (): 
         ->where('order', '[0-9A-HJKMNP-TV-Z]{26}')
         ->name('account.orders.show');
     Route::get('/account/security', AccountSecurityController::class)->name('account.security');
+    Route::patch('/account/notifications/{notification}/read', MarkAccountNotificationReadController::class)
+        ->where('notification', '[0-9A-HJKMNP-TV-Z]{26}')
+        ->name('account.notifications.read');
     Route::delete('/account/security/sessions/{session}', RevokeAccountSessionController::class)
         ->name('account.security.sessions.destroy');
 });
@@ -111,6 +138,19 @@ Route::middleware(['auth', 'verified', 'private.response', 'staff.2fa', 'admin.n
     ->get('/admin/outbox', AdminOutboxController::class)->name('admin.outbox');
 Route::middleware(['auth', 'verified', 'private.response', 'staff.2fa', 'admin.navigation', 'permission:analytics.read,analytics'])
     ->get('/admin/analytics', AdminAnalyticsController::class)->name('admin.analytics');
+Route::middleware(['auth', 'verified', 'private.response', 'staff.2fa', 'admin.navigation', 'permission:catalog.products.manage,catalog'])->group(function (): void {
+    Route::get('/admin/catalog', [AdminCatalogController::class, 'index'])->name('admin.catalog');
+    Route::post('/admin/catalog/categories', [AdminCatalogController::class, 'storeCategory'])->name('admin.catalog.categories.store');
+    Route::patch('/admin/catalog/categories/{category}', [AdminCatalogController::class, 'updateCategory'])->where('category', '[0-9A-HJKMNP-TV-Z]{26}')->name('admin.catalog.categories.update');
+    Route::post('/admin/catalog/products', [AdminCatalogController::class, 'storeProduct'])->name('admin.catalog.products.store');
+    Route::patch('/admin/catalog/products/{product}', [AdminCatalogController::class, 'updateProduct'])->where('product', '[0-9A-HJKMNP-TV-Z]{26}')->name('admin.catalog.products.update');
+    Route::post('/admin/catalog/products/{product}/variants', [AdminCatalogController::class, 'storeVariant'])->where('product', '[0-9A-HJKMNP-TV-Z]{26}')->name('admin.catalog.variants.store');
+    Route::patch('/admin/catalog/variants/{variant}', [AdminCatalogController::class, 'updateVariant'])->where('variant', '[0-9A-HJKMNP-TV-Z]{26}')->name('admin.catalog.variants.update');
+    Route::post('/admin/catalog/products/{product}/specifications', [AdminCatalogController::class, 'storeSpecification'])->where('product', '[0-9A-HJKMNP-TV-Z]{26}')->name('admin.catalog.specifications.store');
+    Route::post('/admin/catalog/products/{product}/media', [AdminCatalogController::class, 'uploadMedia'])->where('product', '[0-9A-HJKMNP-TV-Z]{26}')->name('admin.catalog.media.store');
+    Route::delete('/admin/catalog/products/{product}/media/{asset}/{purpose}', [AdminCatalogController::class, 'detachMedia'])
+        ->where('product', '[0-9A-HJKMNP-TV-Z]{26}')->where('asset', '[0-9A-HJKMNP-TV-Z]{26}')->where('purpose', 'primary|gallery|video|document')->name('admin.catalog.media.destroy');
+});
 Route::middleware(['auth', 'verified', 'private.response', 'staff.2fa', 'admin.navigation', 'permission:merchant.manage,system'])->group(function (): void {
     Route::get('/admin/merchant', [AdminMerchantController::class, 'index'])->name('admin.merchant');
     Route::post('/admin/merchant', [AdminMerchantController::class, 'store'])->name('admin.merchant.store');

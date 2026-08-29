@@ -70,8 +70,19 @@ final class QuotationTest extends TestCase
         self::assertEquals(30, $sentAt->diffInDays($validUntil));
         $viewed = $lifecycle->viewGuest($sent, $token, 'quote-view-1');
         self::assertSame('viewed', $viewed->state);
+        self::assertSame($viewed->lock_version, $lifecycle->viewGuest($viewed, $token, 'quote-view-2')->lock_version);
         $accepted = $lifecycle->acceptGuest($viewed, $token, 'quote-accept-1');
         self::assertSame('accepted', $accepted->state);
+        $facts = DB::table('dispatch_records')
+            ->where('event_type', 'quotation.revision.state.changed')
+            ->where('aggregate_public_id', $created->quote->public_id)
+            ->orderBy('id')
+            ->get();
+        self::assertCount(5, $facts);
+        self::assertSame(
+            ['submitted', 'processing', 'sent', 'viewed', 'accepted'],
+            $facts->map(fn (object $fact): string => (string) json_decode((string) $fact->payload, true, 512, JSON_THROW_ON_ERROR)['to_state'])->all(),
+        );
         try {
             $lifecycle->rejectGuest($accepted, $token, 'quote-reject-late');
             self::fail('Accepted revision must remain terminal for Step 25.');
@@ -238,7 +249,13 @@ final class QuotationTest extends TestCase
         self::assertSame(1, DB::table('quote_conversion_operations')->count());
         self::assertSame(1, DB::table('dispatch_records')->where('event_type', 'commerce.order.placed')
             ->where('aggregate_public_id', $result->order->public_id)->count());
-        self::assertSame('quotation', json_decode((string) DB::table('dispatch_records')->value('payload'), true, flags: JSON_THROW_ON_ERROR)['source']);
+        self::assertSame(1, DB::table('dispatch_records')->where('event_type', 'inventory.availability.changed')->count());
+        self::assertSame(1, DB::table('dispatch_records')->where('event_type', 'quotation.revision.state.changed')
+            ->where('aggregate_public_id', $created->quote->public_id)->pluck('payload')
+            ->filter(fn (string $payload): bool => json_decode($payload, true, 512, JSON_THROW_ON_ERROR)['to_state'] === 'converted')->count());
+        $orderFactPayload = DB::table('dispatch_records')->where('event_type', 'commerce.order.placed')
+            ->where('aggregate_public_id', $result->order->public_id)->value('payload');
+        self::assertSame('quotation', json_decode((string) $orderFactPayload, true, flags: JSON_THROW_ON_ERROR)['source']);
     }
 
     public function test_quote_conversion_stock_failure_rolls_back_every_effect(): void
@@ -252,6 +269,7 @@ final class QuotationTest extends TestCase
         $created = app(CreateQuotationDraft::class)->execute($this->command($variant, $address, $token, 'rollback-create'));
         $lifecycle = app(ManageQuotationLifecycle::class);
         $accepted = $lifecycle->acceptGuest($lifecycle->issue($lifecycle->process($lifecycle->submitGuest($created->revision, $token, 'rollback-submit', 0), 'rollback-process', 1, $staff), 'rollback-issue', 2, $staff), $token, 'rollback-accept');
+        $factCount = DB::table('dispatch_records')->count();
         try {
             app(ConvertQuotationToOrder::class)->execute(new ConvertQuotationCommand($accepted, $customer->getKey(), 'rollback-order', $staff));
             self::fail('Conversion without stock must fail.');
@@ -260,7 +278,10 @@ final class QuotationTest extends TestCase
             self::assertSame(0, DB::table('orders')->count());
             self::assertSame(0, DB::table('inventory_reservations')->count());
             self::assertSame(0, DB::table('quote_conversion_operations')->count());
-            self::assertSame(0, DB::table('dispatch_records')->count());
+            self::assertSame($factCount, DB::table('dispatch_records')->count());
+            self::assertSame(0, DB::table('dispatch_records')->where('event_type', 'quotation.revision.state.changed')
+                ->where('aggregate_public_id', $created->quote->public_id)->pluck('payload')
+                ->filter(fn (string $payload): bool => json_decode($payload, true, 512, JSON_THROW_ON_ERROR)['to_state'] === 'converted')->count());
         }
     }
 

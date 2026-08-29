@@ -14,7 +14,7 @@
                 <form method="GET" action="{{ route('admin.pages') }}" class="grid gap-4 md:grid-cols-[1fr_14rem_auto] md:items-end">
                     <x-ui.input name="q" label="Slug hoặc tiêu đề" :value="$directory->query" />
                     <div><label for="page-status" class="block text-sm font-medium">Trạng thái</label><select id="page-status" name="status" class="mt-2 min-h-11 w-full rounded-control border border-line bg-surface px-3 py-2"><option value="">Tất cả</option>@foreach(['draft'=>'Nháp','published'=>'Đã xuất bản','unpublished'=>'Đã gỡ'] as $value=>$label)<option value="{{ $value }}" @selected($directory->status===$value)>{{ $label }}</option>@endforeach</select></div>
-                    <x-ui.button type="submit">Áp dụng</x-ui.button>
+                    <x-ui.button type="submit" icon="funnel">Áp dụng</x-ui.button>
                 </form>
             </x-ui.card>
             <div class="mt-6 space-y-3">
@@ -33,7 +33,7 @@
             </div>
             @if($directory->previousCursor || $directory->nextCursor)<nav class="mt-6 flex justify-between">@if($directory->previousCursor)<x-ui.button :href="route('admin.pages',array_filter(['q'=>$directory->query,'status'=>$directory->status,'cursor'=>$directory->previousCursor]))" variant="secondary">Trang trước</x-ui.button>@else<span></span>@endif @if($directory->nextCursor)<x-ui.button :href="route('admin.pages',array_filter(['q'=>$directory->query,'status'=>$directory->status,'cursor'=>$directory->nextCursor]))" variant="secondary">Trang sau</x-ui.button>@endif</nav>@endif
         </div>
-        <x-ui.card title="Tạo bản nháp"><form method="POST" action="{{ route('admin.pages.store') }}" class="space-y-4">@csrf<x-ui.input name="title" label="Tiêu đề" :value="old('title')" required /><x-ui.input name="slug" label="Slug" :value="old('slug')" required /><x-ui.input name="summary" label="Tóm tắt" :value="old('summary')" /><div><label for="body-markdown" class="block text-sm font-medium">Nội dung Markdown</label><textarea id="body-markdown" name="body_markdown" rows="12" required class="mt-2 w-full rounded-control border border-line bg-surface px-3 py-2">{{ old('body_markdown') }}</textarea></div><x-ui.button type="submit">Lưu bản nháp</x-ui.button></form></x-ui.card>
+        <x-ui.card title="Tạo bản nháp"><form method="POST" action="{{ route('admin.pages.store') }}" class="space-y-4">@csrf<x-ui.input name="title" label="Tiêu đề" :value="old('title')" required /><x-ui.input name="slug" label="Slug" :value="old('slug')" required /><x-ui.input name="summary" label="Tóm tắt" :value="old('summary')" /><div><label for="body-markdown" class="block text-sm font-medium">Nội dung Markdown</label><textarea id="body-markdown" name="body_markdown" rows="12" required class="mt-2 w-full rounded-control border border-line bg-surface px-3 py-2">{{ old('body_markdown') }}</textarea></div><x-ui.button type="submit" icon="document-plus">Lưu bản nháp</x-ui.button></form></x-ui.card>
     </div>
 </section>
 @endsection

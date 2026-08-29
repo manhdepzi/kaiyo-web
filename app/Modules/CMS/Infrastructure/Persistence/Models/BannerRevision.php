@@ -14,6 +14,8 @@ use Illuminate\Database\Eloquent\Model;
  * @property string|null $body
  * @property string|null $cta_label
  * @property string|null $cta_url
+ * @property string|null $image_path
+ * @property int $sort_order
  * @property string $integrity_hash
  * @property int $created_by_user_account_id
  * @property CarbonImmutable|null $published_at
@@ -24,6 +26,6 @@ final class BannerRevision extends Model
 
     protected function casts(): array
     {
-        return ['revision_no' => 'integer', 'published_at' => 'immutable_datetime'];
+        return ['revision_no' => 'integer', 'sort_order' => 'integer', 'published_at' => 'immutable_datetime'];
     }
 }

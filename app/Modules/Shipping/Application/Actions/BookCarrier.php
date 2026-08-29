@@ -8,6 +8,7 @@ use App\Modules\Identity\Authorization\AuthorizationScope;
 use App\Modules\Identity\Contracts\PermissionAuthorizer;
 use App\Modules\Identity\Infrastructure\Persistence\Models\UserAccount;
 use App\Modules\Shipping\Application\Data\CarrierBookingResult;
+use App\Modules\Shipping\Application\Services\ShipmentStateFactRecorder;
 use App\Modules\Shipping\Infrastructure\CarrierRegistry;
 use App\Modules\Shipping\Infrastructure\Persistence\Models\Shipment;
 use DomainException;
@@ -17,7 +18,7 @@ use Throwable;
 
 final readonly class BookCarrier
 {
-    public function __construct(private PermissionAuthorizer $authorizer, private CarrierRegistry $carriers) {}
+    public function __construct(private PermissionAuthorizer $authorizer, private CarrierRegistry $carriers, private ShipmentStateFactRecorder $stateFacts) {}
 
     public function execute(Shipment $shipment, string $operationKey, int $expectedVersion, UserAccount $actor): Shipment
     {
@@ -52,6 +53,7 @@ final readonly class BookCarrier
                 throw new DomainException('Shipment changed while carrier booking was in progress.');
             }
             $target = $result->outcome === 'booked' ? 'booked' : ($result->outcome === 'unknown' ? 'booking_unknown' : 'ready');
+            $from = $locked->state;
             $values = ['state' => $target, 'lock_version' => $expectedVersion + 1];
             if ($result->outcome === 'booked' && $result->bookingReference !== null) {
                 $values['carrier_booking_ref_hash'] = hash('sha256', $locked->carrier_code."\0".$result->bookingReference, true);
@@ -68,6 +70,9 @@ final readonly class BookCarrier
                     'subject_type' => 'shipment', 'subject_id' => $locked->getKey(), 'reason_code' => 'carrier_booking_unknown',
                     'state' => 'open', 'created_at' => now(), 'updated_at' => now(),
                 ]);
+            }
+            if ($from !== $target) {
+                $this->stateFacts->record($locked, $from);
             }
 
             return $locked->refresh();

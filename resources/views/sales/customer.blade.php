@@ -4,7 +4,7 @@
 
 @section('content')
 <section class="mx-auto max-w-[1440px] px-5 py-10 lg:px-8">
-    <a href="{{ route('sales.customers') }}" class="text-sm font-semibold text-brand hover:underline">← Danh sách khách hàng</a>
+    <a href="{{ route('sales.customers') }}" class="inline-flex items-center gap-2 text-sm font-semibold text-brand hover:underline"><x-heroicon-o-arrow-left class="size-4" aria-hidden="true" />Danh sách khách hàng</a>
     <div class="mt-5 flex flex-wrap items-start justify-between gap-4"><div><p class="text-sm font-semibold uppercase tracking-widest text-brand">Customer 360</p><h1 class="mt-2 text-3xl font-bold">{{ $customer->displayName }}</h1><p class="mt-2 font-mono text-xs text-ink-muted">{{ $customer->publicId }}</p></div><x-ui.badge :tone="$customer->status === 'active' ? 'success' : 'neutral'">{{ $customer->status }}</x-ui.badge></div>
 
     <div class="mt-8 grid gap-6 lg:grid-cols-3">

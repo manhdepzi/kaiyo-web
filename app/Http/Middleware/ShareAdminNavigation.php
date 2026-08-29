@@ -26,6 +26,7 @@ final readonly class ShareAdminNavigation
             'outbox' => $this->authorizer->allows($account, 'system.audit.read', AuthorizationScope::module('system')),
             'merchant' => $this->authorizer->allows($account, 'merchant.manage', AuthorizationScope::module('system')),
             'analytics' => $this->authorizer->allows($account, 'analytics.read', AuthorizationScope::module('analytics')),
+            'catalog' => $this->authorizer->allows($account, 'catalog.products.manage', AuthorizationScope::module('catalog')),
         ] : []);
 
         return $next($request);

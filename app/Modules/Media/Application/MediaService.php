@@ -39,7 +39,8 @@ final readonly class MediaService
         $declaredMime = $upload->getClientMimeType();
         $extension = mb_strtolower($upload->getClientOriginalExtension(), 'UTF-8');
         $expectedExtensions = [
-            'image/jpeg' => ['jpg', 'jpeg'], 'image/png' => ['png'], 'image/webp' => ['webp'], 'application/pdf' => ['pdf'],
+            'image/jpeg' => ['jpg', 'jpeg'], 'image/png' => ['png'], 'image/webp' => ['webp'],
+            'video/mp4' => ['mp4'], 'video/webm' => ['webm'], 'application/pdf' => ['pdf'],
         ];
         if ($declaredMime !== $detectedMime || ! in_array($extension, $expectedExtensions[$detectedMime], true)) {
             throw new DomainException('Declared MIME or extension does not match detected content.');
@@ -89,8 +90,16 @@ final readonly class MediaService
     public function attachToCatalog(UserAccount $actor, MediaAsset $asset, ?int $productId, ?int $variantId, string $purpose, int $sortOrder = 0): void
     {
         $this->authorizeManage($actor);
-        if ($asset->status !== 'active' || (($productId === null) === ($variantId === null)) || ! in_array($purpose, ['primary', 'gallery', 'document'], true)) {
+        if ($asset->status !== 'active' || (($productId === null) === ($variantId === null)) || ! in_array($purpose, ['primary', 'gallery', 'video', 'document'], true)) {
             throw new DomainException('Catalog media reference is invalid.');
+        }
+        $validPurposeType = $purpose === 'video'
+            ? str_starts_with($asset->detected_mime, 'video/')
+            : ($purpose === 'document'
+                ? $asset->detected_mime === 'application/pdf'
+                : str_starts_with($asset->detected_mime, 'image/'));
+        if (! $validPurposeType) {
+            throw new DomainException('Catalog media purpose does not match the detected media type.');
         }
         DB::table('catalog_media_references')->insertOrIgnore([
             'product_id' => $productId, 'variant_id' => $variantId, 'media_asset_id' => $asset->getKey(),
@@ -98,6 +107,20 @@ final readonly class MediaService
             'identity_hash' => hash('sha256', ($productId ?? 0).'|'.($variantId ?? 0).'|'.$asset->getKey().'|'.$purpose, true),
             'created_at' => now(), 'updated_at' => now(),
         ]);
+    }
+
+    public function detachFromCatalog(UserAccount $actor, MediaAsset $asset, int $productId, string $purpose): void
+    {
+        $this->authorizeManage($actor);
+        if (! in_array($purpose, ['primary', 'gallery', 'video', 'document'], true)) {
+            throw new DomainException('Catalog media purpose is invalid.');
+        }
+        DB::table('catalog_media_references')
+            ->where('product_id', $productId)
+            ->whereNull('variant_id')
+            ->where('media_asset_id', $asset->getKey())
+            ->where('purpose', $purpose)
+            ->delete();
     }
 
     public function temporaryUrl(?UserAccount $actor, MediaAsset $asset): string

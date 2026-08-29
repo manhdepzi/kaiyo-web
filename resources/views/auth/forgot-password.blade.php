@@ -6,6 +6,6 @@
 <form method="POST" action="{{ route('password.email') }}" class="space-y-5">
     @csrf
     <x-ui.input name="email_normalized" label="Email" type="email" required autofocus autocomplete="email" />
-    <x-ui.button type="submit" class="w-full">Gửi hướng dẫn</x-ui.button>
+    <x-ui.button type="submit" class="w-full" icon="paper-airplane">Gửi hướng dẫn</x-ui.button>
 </form>
 @endsection

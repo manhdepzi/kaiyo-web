@@ -7,6 +7,7 @@ namespace App\Modules\Shipping\Application\Actions;
 use App\Modules\Identity\Authorization\AuthorizationScope;
 use App\Modules\Identity\Contracts\PermissionAuthorizer;
 use App\Modules\Identity\Infrastructure\Persistence\Models\UserAccount;
+use App\Modules\Shipping\Application\Services\ShipmentStateFactRecorder;
 use App\Modules\Shipping\Infrastructure\Persistence\Models\CarrierEvent;
 use App\Modules\Shipping\Infrastructure\Persistence\Models\Shipment;
 use DomainException;
@@ -15,7 +16,7 @@ use Illuminate\Support\Facades\DB;
 
 final readonly class CorrectTracking
 {
-    public function __construct(private PermissionAuthorizer $authorizer) {}
+    public function __construct(private PermissionAuthorizer $authorizer, private ShipmentStateFactRecorder $stateFacts) {}
 
     public function execute(Shipment $shipment, string $correctedState, string $reason, string $operationKey, int $expectedVersion, UserAccount $actor, ?CarrierEvent $source = null): Shipment
     {
@@ -52,6 +53,7 @@ final readonly class CorrectTracking
                 'result_state' => $correctedState, 'result_version' => $expectedVersion + 1,
                 'evidence' => json_encode(['reason' => $reason, 'source_event_id' => $source?->getKey()], JSON_THROW_ON_ERROR), 'created_at' => now(),
             ]);
+            $this->stateFacts->record($locked, $from);
 
             return $locked->refresh();
         }, 3);

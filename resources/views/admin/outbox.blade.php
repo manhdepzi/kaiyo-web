@@ -17,7 +17,7 @@
     <form method="GET" action="{{ route('admin.outbox') }}" class="mt-8 grid items-end gap-4 sm:grid-cols-[12rem_20rem_auto]">
         <div><label class="block text-sm font-medium" for="outbox-state">Trạng thái</label><select id="outbox-state" name="state" class="mt-2 min-h-11 w-full rounded-control border border-line bg-surface px-3"><option value="">Tất cả</option>@foreach(['pending','publishing','published','dead'] as $option)<option value="{{ $option }}" @selected($state===$option)>{{ $option }}</option>@endforeach</select></div>
         <x-ui.input name="event_type" label="Event type" :value="$eventType" placeholder="commerce.order.placed" />
-        <x-ui.button type="submit" variant="secondary">Lọc</x-ui.button>
+        <x-ui.button type="submit" variant="secondary" icon="funnel">Lọc</x-ui.button>
     </form>
 
     <div class="mt-8 space-y-3">

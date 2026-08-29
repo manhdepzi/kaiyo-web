@@ -46,7 +46,7 @@ final class PublicWebsiteTest extends TestCase
     public function test_public_information_pages_are_indexable_ssr(): void
     {
         $this->get('/gioi-thieu')->assertOk()->assertSee('<h1', false)->assertSee('Một nền tảng, hai hành trình');
-        $this->get('/lien-he')->assertOk()->assertSee('<h1', false)->assertSee('Kênh liên hệ đang được cấu hình');
+        $this->get('/lien-he')->assertOk()->assertSee('<h1', false)->assertSee('Cùng tìm giải pháp phù hợp cho công trình');
     }
 
     public function test_search_shows_only_active_public_catalog_facts_and_no_invented_price(): void

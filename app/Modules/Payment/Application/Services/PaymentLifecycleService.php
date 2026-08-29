@@ -8,7 +8,10 @@ use App\Modules\Checkout\Application\Data\PaymentPreparation;
 use App\Modules\Checkout\Contracts\PaymentPreparationPort;
 use App\Modules\Checkout\Contracts\PaymentRegistrationPort;
 use App\Modules\Checkout\Infrastructure\Persistence\Models\Order;
-use App\Modules\Payment\Domain\Events\PaymentVerified;
+use App\Modules\Foundation\Application\StoreDispatchFact;
+use App\Modules\Foundation\Data\DispatchFact;
+use App\Modules\Inventory\Application\Services\InventoryReservationService;
+use App\Modules\Inventory\Infrastructure\Persistence\Models\InventoryReservation;
 use App\Modules\Payment\Infrastructure\Persistence\Models\Payment;
 use App\Modules\Payment\Infrastructure\Persistence\Models\PaymentAttempt;
 use DomainException;
@@ -16,6 +19,11 @@ use Illuminate\Support\Facades\DB;
 
 final class PaymentLifecycleService implements PaymentPreparationPort, PaymentRegistrationPort
 {
+    public function __construct(
+        private readonly StoreDispatchFact $dispatchFacts,
+        private readonly InventoryReservationService $inventory,
+    ) {}
+
     public function prepare(string $method, int $finalAmount, string $currency, int $customerId): PaymentPreparation
     {
         if (! in_array($method, ['cod', 'bank_transfer', 'online_gateway'], true) || $finalAmount <= 0 || $currency !== 'VND' || $customerId <= 0) {
@@ -68,7 +76,7 @@ final class PaymentLifecycleService implements PaymentPreparationPort, PaymentRe
             throw new DomainException('Verified payment evidence is required.');
         }
 
-        $result = DB::transaction(function () use ($payment, $operationKey, $reference, $source): Payment {
+        return DB::transaction(function () use ($payment, $operationKey, $reference, $source): Payment {
             $locked = Payment::query()->whereKey($payment->getKey())->lockForUpdate()->firstOrFail();
             $attempt = PaymentAttempt::query()->where('payment_id', $locked->getKey())->orderByDesc('attempt_no')->lockForUpdate()->firstOrFail();
             $existing = DB::table('payment_transactions')->where('operation_key', $operationKey)->first();
@@ -77,7 +85,10 @@ final class PaymentLifecycleService implements PaymentPreparationPort, PaymentRe
                     throw new DomainException('Payment operation key conflicts with existing evidence.');
                 }
 
-                return $locked;
+                $this->protectReservation($locked);
+                $this->recordVerifiedFact($locked, $operationKey);
+
+                return $locked->refresh();
             }
             if ($locked->state === 'paid') {
                 throw new DomainException('Paid Payment requires the original operation identity.');
@@ -93,12 +104,37 @@ final class PaymentLifecycleService implements PaymentPreparationPort, PaymentRe
             ]);
             $attempt->forceFill(['state' => 'paid', 'lock_version' => $attempt->lock_version + 1])->save();
             $locked->forceFill(['state' => 'paid', 'paid_amount' => $locked->payable_amount, 'paid_at' => now(), 'lock_version' => $locked->lock_version + 1])->save();
+            $this->protectReservation($locked);
+            $this->recordVerifiedFact($locked, $operationKey);
 
             return $locked->refresh();
         }, 3);
+    }
 
-        event(new PaymentVerified((int) $result->getKey(), $operationKey, $reference));
+    private function protectReservation(Payment $payment): void
+    {
+        $order = Order::query()->findOrFail($payment->order_id);
+        if ($order->inventory_reservation_id === null) {
+            return;
+        }
 
-        return $result->refresh();
+        $reservation = InventoryReservation::query()->findOrFail($order->inventory_reservation_id);
+        $this->inventory->protectFromExpiryAfterVerifiedPayment($reservation);
+    }
+
+    private function recordVerifiedFact(Payment $payment, string $operationKey): void
+    {
+        $operationIdentity = hash('sha256', $operationKey);
+        $this->dispatchFacts->record(new DispatchFact(
+            'payment.verified:v1:'.$payment->public_id.':'.$operationIdentity,
+            'payment.verified',
+            1,
+            'payment',
+            $payment->public_id,
+            [
+                'operation_identity' => $operationIdentity,
+                'payment_public_id' => $payment->public_id,
+            ],
+        ));
     }
 }

@@ -4,7 +4,7 @@
 
 @section('content')
 <section class="mx-auto max-w-5xl px-5 py-10 lg:px-8">
-    <a href="{{ route('sales.companies') }}" class="text-sm font-semibold text-brand hover:underline">← Danh sách công ty</a>
+    <a href="{{ route('sales.companies') }}" class="inline-flex items-center gap-2 text-sm font-semibold text-brand hover:underline"><x-heroicon-o-arrow-left class="size-4" aria-hidden="true" />Danh sách công ty</a>
     <div class="mt-5 flex flex-wrap justify-between gap-4"><div><p class="text-sm font-semibold uppercase tracking-widest text-brand">Company 360</p><h1 class="mt-2 text-3xl font-bold">{{ $company->displayName }}</h1><p class="mt-2 text-ink-muted">{{ $company->legalName }}</p><p class="mt-1 font-mono text-xs text-ink-muted">{{ $company->publicId }}</p></div><x-ui.badge :tone="$company->status==='active'?'success':'neutral'">{{ $company->status }}</x-ui.badge></div>
     @if(session('status'))<x-ui.alert class="mt-6" tone="success" title="Đã cập nhật">{{ session('status') }}</x-ui.alert>@endif
     @if($errors->any())<x-ui.alert class="mt-6" tone="danger" title="Không thể hoàn tất"><ul class="list-disc pl-5">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></x-ui.alert>@endif

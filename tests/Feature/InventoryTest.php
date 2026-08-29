@@ -7,6 +7,7 @@ namespace Tests\Feature;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\Category;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\Product;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\Variant;
+use App\Modules\Foundation\Application\RelayDispatchRecords;
 use App\Modules\Identity\Authorization\AuthorizationScope;
 use App\Modules\Identity\Infrastructure\Persistence\Models\PermissionDefinition;
 use App\Modules\Identity\Infrastructure\Persistence\Models\ScopedGrant;
@@ -41,6 +42,17 @@ final class InventoryTest extends TestCase
         self::assertSame(105_000, InventoryQuantity::from((string) $balance->on_hand_qty)->units);
         self::assertSame(0, InventoryQuantity::from((string) $balance->reserved_qty)->units);
         self::assertDatabaseHas('stock_movements', ['type' => 'receipt', 'operation_key' => 'adjustment:'.$adjustment->public_id]);
+        $fact = DB::table('dispatch_records')->where('event_type', 'inventory.availability.changed')->first();
+        self::assertNotNull($fact);
+        self::assertSame($variant->public_id, $fact->aggregate_public_id);
+        self::assertSame('variant', $fact->aggregate_type);
+        self::assertSame([
+            'balance_version' => 1,
+            'change_type' => 'adjusted',
+            'warehouse_public_id' => $warehouse->public_id,
+        ], json_decode((string) $fact->payload, true, flags: JSON_THROW_ON_ERROR));
+        self::assertSame(['published' => 1, 'failed' => 0], app(RelayDispatchRecords::class)->execute(10));
+        self::assertDatabaseHas('dispatch_records', ['id' => $fact->id, 'state' => 'published', 'attempt_count' => 1]);
     }
 
     public function test_self_approval_cross_scope_and_negative_availability_fail_closed(): void
@@ -72,6 +84,7 @@ final class InventoryTest extends TestCase
         self::assertSame($reservation->getKey(), $retry->getKey());
         self::assertSame('4.0000', $balance->refresh()->availableQuantity());
         self::assertSame(1, DB::table('stock_movements')->where('type', 'reservation_created')->count());
+        self::assertSame(2, DB::table('dispatch_records')->where('event_type', 'inventory.availability.changed')->count());
 
         try {
             $service->reserve('order', 'ORDER-2', 'reserve-order-2', [['stock_balance_id' => $balance->getKey(), 'quantity' => '5']]);
@@ -85,6 +98,7 @@ final class InventoryTest extends TestCase
         self::assertSame('released', $released->status);
         self::assertSame(0, InventoryQuantity::from((string) $balance->refresh()->reserved_qty)->units);
         self::assertSame(1, DB::table('stock_movements')->where('type', 'reservation_released')->count());
+        self::assertSame(3, DB::table('dispatch_records')->where('event_type', 'inventory.availability.changed')->count());
     }
 
     public function test_dispatch_commit_decrements_on_hand_and_reserved_exactly_once(): void
@@ -130,6 +144,31 @@ final class InventoryTest extends TestCase
 
         $this->expectException(DomainException::class);
         $service->reserve('order', 'ORDER-GATEWAY', 'reserve-gateway', [['stock_balance_id' => $balance->getKey(), 'quantity' => '1']], 'online_gateway');
+    }
+
+    public function test_availability_fact_rolls_back_with_the_inventory_mutation(): void
+    {
+        $balance = $this->balanceWithStock('5');
+        $factCount = DB::table('dispatch_records')->count();
+
+        try {
+            DB::transaction(function () use ($balance): void {
+                app(InventoryReservationService::class)->reserve(
+                    'order',
+                    'ORDER-ROLLBACK',
+                    'reserve-rollback',
+                    [['stock_balance_id' => $balance->getKey(), 'quantity' => '2']],
+                );
+                throw new DomainException('Force outer transaction rollback.');
+            });
+            self::fail('The transaction must roll back.');
+        } catch (DomainException $exception) {
+            self::assertSame('Force outer transaction rollback.', $exception->getMessage());
+        }
+
+        self::assertSame($factCount, DB::table('dispatch_records')->count());
+        self::assertDatabaseMissing('inventory_reservations', ['source_public_id' => 'ORDER-ROLLBACK']);
+        self::assertSame('5.0000', $balance->refresh()->availableQuantity());
     }
 
     private function balanceWithStock(string $quantity): StockBalance

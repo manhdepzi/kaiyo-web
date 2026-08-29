@@ -52,6 +52,7 @@ final class AccountPortalReader
         $customer = Customer::query()->where('user_account_id', $account->getKey())->first();
         $orders = [];
         $quotes = [];
+        $notifications = [];
         if ($customer !== null) {
             $orders = array_values(DB::table('orders')->where('customer_id', $customer->getKey())
                 ->orderByDesc('placed_at')->orderByDesc('id')->limit(10)
@@ -73,6 +74,32 @@ final class AccountPortalReader
                     'currency' => (string) $row->currency,
                     'revision' => (int) $row->revision_no,
                 ])->all());
+            $notificationTitles = [
+                'confirmed' => 'Đơn hàng đã được xác nhận',
+                'processing' => 'Đơn hàng đang được xử lý',
+                'packed' => 'Đơn hàng đã đóng gói',
+                'shipping' => 'Đơn hàng đang được giao',
+                'delivered' => 'Đơn hàng đã giao',
+                'completed' => 'Đơn hàng đã hoàn tất',
+                'cancelled' => 'Đơn hàng đã hủy',
+            ];
+            $notifications = array_values(DB::table('notifications')->where('customer_id', $customer->getKey())
+                ->where('channel', 'in_app')->where('state', 'sent')
+                ->orderByDesc('created_at')->orderByDesc('id')->limit(20)
+                ->get(['public_id', 'attributes', 'read_at', 'created_at'])
+                ->map(function (object $row) use ($notificationTitles): array {
+                    $attributes = json_decode((string) $row->attributes, true, 512, JSON_THROW_ON_ERROR);
+                    $toState = is_string($attributes['to_state'] ?? null) ? $attributes['to_state'] : 'unknown';
+
+                    return [
+                        'public_id' => (string) $row->public_id,
+                        'title' => $notificationTitles[$toState] ?? 'Trạng thái đơn hàng đã thay đổi',
+                        'order_public_id' => is_string($attributes['order_public_id'] ?? null) ? $attributes['order_public_id'] : '',
+                        'to_state' => $toState,
+                        'is_read' => $row->read_at !== null,
+                        'created_at' => (string) $row->created_at,
+                    ];
+                })->all());
         }
         $companies = array_values(DB::table('company_memberships')->join('companies', 'companies.id', '=', 'company_memberships.company_id')
             ->where('company_memberships.user_account_id', $account->getKey())
@@ -99,6 +126,7 @@ final class AccountPortalReader
             $orders,
             $quotes,
             $companies,
+            $notifications,
         );
     }
 }

@@ -14,7 +14,7 @@
 
     @if (count($cart->lines) === 0)
         <x-ui.empty-state class="mt-8" title="Giỏ hàng đang trống" description="Hãy tìm sản phẩm và chọn biến thể phù hợp để bắt đầu.">
-            <x-ui.button :href="route('public.search')">Tìm sản phẩm</x-ui.button>
+            <x-ui.button :href="route('public.search')" icon="magnifying-glass">Tìm sản phẩm</x-ui.button>
         </x-ui.empty-state>
     @else
         <div class="mt-8 space-y-4">
@@ -42,24 +42,24 @@
                                 <label class="block text-xs font-medium text-ink-muted" for="cart-quantity-{{ $line->id }}">Số lượng</label>
                                 <input id="cart-quantity-{{ $line->id }}" name="quantity" value="{{ rtrim(rtrim($line->quantity, '0'), '.') }}" inputmode="decimal" required class="mt-1 min-h-9 w-24 rounded-control border border-line bg-surface px-2 text-ink">
                             </div>
-                            <x-ui.button type="submit" variant="secondary" size="sm">Cập nhật</x-ui.button>
+                            <x-ui.button type="submit" variant="secondary" size="sm" icon="arrow-path">Cập nhật</x-ui.button>
                         </form>
                         <form method="POST" action="{{ route('public.cart.lines.destroy', $line->id) }}">
                             @csrf @method('DELETE')
                             <input type="hidden" name="operation_key" value="{{ (string) \Illuminate\Support\Str::ulid() }}">
                             <input type="hidden" name="expected_version" value="{{ $cart->version }}">
-                            <x-ui.button type="submit" variant="ghost" size="sm">Xóa</x-ui.button>
+                            <x-ui.button type="submit" variant="ghost" size="sm" icon="trash">Xóa</x-ui.button>
                         </form>
                     </div>
                 </article>
             @endforeach
         </div>
         <div class="mt-8 flex flex-wrap justify-between gap-3 border-t border-line pt-6">
-            <form method="POST" action="{{ route('public.cart.refresh') }}">@csrf<x-ui.button type="submit" variant="secondary">Làm mới giá và tồn kho</x-ui.button></form>
+            <form method="POST" action="{{ route('public.cart.refresh') }}">@csrf<x-ui.button type="submit" variant="secondary" icon="arrow-path">Làm mới giá và tồn kho</x-ui.button></form>
             @auth
-                <x-ui.button :href="route('public.checkout')">Tiến hành thanh toán</x-ui.button>
+                <x-ui.button :href="route('public.checkout')" icon="credit-card">Tiến hành thanh toán</x-ui.button>
             @else
-                <x-ui.button :href="route('login')">Đăng nhập để checkout</x-ui.button>
+                <x-ui.button :href="route('login')" icon="arrow-right-end-on-rectangle">Đăng nhập để checkout</x-ui.button>
             @endauth
         </div>
         <p class="mt-4 text-sm text-ink-muted">Giá và tồn kho trong giỏ chỉ mang tính tham khảo; checkout luôn tính lại từ nguồn dữ liệu chính thức.</p>

@@ -8,6 +8,7 @@ use App\Modules\CRM\Infrastructure\Persistence\Models\Customer;
 use App\Modules\Identity\Authorization\AuthorizationScope;
 use App\Modules\Identity\Contracts\PermissionAuthorizer;
 use App\Modules\Identity\Infrastructure\Persistence\Models\UserAccount;
+use App\Modules\Quotation\Application\Services\QuotationStateFactRecorder;
 use App\Modules\Quotation\Domain\QuotationApprovalPolicy;
 use App\Modules\Quotation\Infrastructure\Persistence\Models\Quote;
 use App\Modules\Quotation\Infrastructure\Persistence\Models\QuoteRevision;
@@ -18,7 +19,7 @@ use Illuminate\Support\Facades\DB;
 
 final readonly class ManageQuotationLifecycle
 {
-    public function __construct(private PermissionAuthorizer $authorizer, private QuotationApprovalPolicy $approval) {}
+    public function __construct(private PermissionAuthorizer $authorizer, private QuotationApprovalPolicy $approval, private QuotationStateFactRecorder $stateFacts) {}
 
     public function submitGuest(QuoteRevision $revision, string $guestToken, string $operationKey, int $expectedVersion): QuoteRevision
     {
@@ -170,6 +171,7 @@ final readonly class ManageQuotationLifecycle
             if (! $allowed || $locked->lock_version !== $expectedVersion) {
                 throw new DomainException('Quotation transition is stale or illegal.');
             }
+            $from = $locked->state;
             $values = ['state' => $target, 'lock_version' => $expectedVersion + 1];
             $timestamp = ['submit' => 'submitted_at', 'process' => 'processing_at', 'issue' => 'sent_at', 'expire' => 'expired_at'][$action];
             $values[$timestamp] = now();
@@ -181,6 +183,7 @@ final readonly class ManageQuotationLifecycle
                 'operation_key' => $key, 'request_hash' => $hash, 'quote_revision_id' => $locked->getKey(),
                 'action' => $action, 'result_state' => $target, 'result_version' => $expectedVersion + 1, 'created_at' => now(),
             ]);
+            $this->stateFacts->record($locked, $from);
 
             return $locked->refresh();
         }, 3);
@@ -209,6 +212,7 @@ final readonly class ManageQuotationLifecycle
             if (! in_array($locked->state, ['sent', 'viewed'], true) || $locked->valid_until === null || $locked->valid_until->isPast()) {
                 throw new DomainException('Quotation is not eligible for this customer action.');
             }
+            $from = $locked->state;
             if (! ($target === 'viewed' && $locked->state === 'viewed')) {
                 $locked->forceFill(['state' => $target, $target.'_at' => now(), 'lock_version' => $locked->lock_version + 1])->save();
             }
@@ -216,6 +220,9 @@ final readonly class ManageQuotationLifecycle
                 'quote_revision_id' => $locked->getKey(), 'event_key' => $eventKey, 'access_kind' => $target,
                 'actor_evidence_hash' => $actorEvidence, 'occurred_at' => now(),
             ]);
+            if ($from !== $locked->state) {
+                $this->stateFacts->record($locked, $from);
+            }
 
             return $locked->refresh();
         }, 3);

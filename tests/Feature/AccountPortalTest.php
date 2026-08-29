@@ -11,6 +11,7 @@ use App\Modules\CRM\Infrastructure\Persistence\Models\Customer;
 use App\Modules\Identity\Infrastructure\Persistence\Models\UserAccount;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 final class AccountPortalTest extends TestCase
@@ -105,9 +106,38 @@ final class AccountPortalTest extends TestCase
             'order_id' => $order->getKey(), 'from_state' => null, 'to_state' => 'pending',
             'reason_code' => 'checkout_placed', 'occurred_at' => now(),
         ]);
+        DB::table('notifications')->insert([
+            'public_id' => (string) Str::ulid(),
+            'customer_id' => $customer->getKey(),
+            'order_id' => $order->getKey(),
+            'channel' => 'in_app',
+            'template_key' => 'order.confirmed',
+            'business_fact_public_id' => (string) Str::ulid(),
+            'idempotency_hash' => hash('sha256', 'account-notification-test', true),
+            'attributes' => json_encode([
+                'from_state' => 'pending',
+                'order_public_id' => $order->public_id,
+                'order_version' => 1,
+                'to_state' => 'confirmed',
+            ], JSON_THROW_ON_ERROR),
+            'state' => 'sent',
+            'sent_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
 
         $this->actingAs($owner)->get(route('account.orders.show', $order->public_id))
             ->assertOk()->assertSee($order->public_id)->assertSee('130.000 ₫')->assertSee('pending');
+        $this->actingAs($owner)->get(route('account'))
+            ->assertOk()->assertSee('Đơn hàng đã được xác nhận')->assertSee($order->public_id);
+        $notificationPublicId = (string) DB::table('notifications')->value('public_id');
+        $this->patch(route('account.notifications.read', $notificationPublicId))
+            ->assertRedirect()->assertSessionHasNoErrors();
+        self::assertNotNull(DB::table('notifications')->where('public_id', $notificationPublicId)->value('read_at'));
+        $this->patch(route('account.notifications.read', $notificationPublicId))->assertRedirect();
+        $this->actingAs($other)->get(route('account'))
+            ->assertOk()->assertDontSee('Đơn hàng đã được xác nhận')->assertDontSee($order->public_id);
+        $this->patch(route('account.notifications.read', $notificationPublicId))->assertNotFound();
         $this->actingAs($other)->get(route('account.orders.show', $order->public_id))->assertNotFound();
     }
 }

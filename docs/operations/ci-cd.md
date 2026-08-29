@@ -13,8 +13,8 @@
 3. install Composer/npm dependencies from locks with scripts reviewed and cache scoped to lock hash;
 4. Pint/check formatting, Larastan/PHPStan and architecture rules;
 5. PHPUnit unit/feature/permission/contract suites;
-6. MySQL 8.4/Redis 8.2 integration and migration tests;
-7. concurrency/high-risk suite (may be separate required job);
+6. MySQL 8.4/Redis 8.2 integration and migration tests through `phpunit.mysql.xml`;
+7. isolated two-process outbox claim probe after the MySQL suite; the probe refuses non-verification database names;
 8. Redocly 2.47.0 spec/recommended OpenAPI lint;
 9. frontend lint/build and SSR/component tests;
 10. Composer/npm audit, secret scan and approved SAST/SCA;
@@ -40,5 +40,12 @@
 
 ## Step 11 deliverable
 
-Foundation adds a reproducible local CI-equivalent command and a provider workflow for lint/static/unit/build/OpenAPI/security basics. Deployment jobs remain disabled/stubbed until environments/providers/runbooks are approved.
+Foundation includes a reproducible local CI-equivalent command and a provider workflow for lint/static/SQLite/MySQL/concurrency/build/OpenAPI/security basics. Deployment jobs remain disabled/stubbed until environments/providers/runbooks are approved.
 
+## Local executable evidence
+
+- Default SQLite regression: 182 passed / 1268 assertions with four documented MySQL-only skips.
+- Expanded MySQL 8.4 matrix: 69 tests / 475 assertions with one documented skip because the committed multi-process probe executes after the transactional test suite.
+- The post-suite two-worker probe split 6/6 across 12 facts with one attempt each.
+- The exact disposable `kaiyo_test` schema was dropped after verification; live `kaiyo` retained all 18 migrations and an empty healthy outbox.
+- Composer strict validation, Pint and PHPStan level 8 pass locally. A remote GitHub run, immutable artifact/provenance and staging rollback rehearsal remain pending.

@@ -23,8 +23,16 @@ Configuration is environment-owned and bounded in code:
 ## Detection
 
 - Use the private Admin **Outbox** monitor; access requires `system.audit.read`, verified account and confirmed staff 2FA.
+- Use `php artisan outbox:status` for a read-only bounded summary. Add `--json` for monitoring ingestion; the output contains counts and ages only, never payloads or stored error details.
+- Deployment-owned alert gates may call `outbox:status --max-pending-age=<seconds> --max-publishing-age=<seconds> --fail-on-dead`. No age threshold is assumed when those options are absent.
 - Watch pending count/oldest age, records stuck in `publishing`, dead count and error-code concentration.
 - Never copy payload JSON or hashes into tickets, chat, metrics labels or public logs.
+
+## Isolated concurrency verification
+
+- `php artisan outbox:concurrency-probe` creates bounded synthetic facts and starts two relay processes to prove each record is claimed once.
+- The command is hard-gated to MySQL databases named exactly `kaiyo_test` or prefixed `kaiyo_step48_verify_`; it refuses the application database and refuses an isolated schema that already has eligible records.
+- Run it only after migrations on a disposable verification schema. The command does not authorize schema creation, cleanup or use against live data.
 
 ## Triage
 

@@ -4,7 +4,7 @@
 
 @section('content')
 <section class="mx-auto max-w-5xl px-5 py-10 lg:px-8">
-    <a href="{{ route('sales.leads') }}" class="text-sm font-semibold text-brand hover:underline">← Danh sách Lead</a>
+    <a href="{{ route('sales.leads') }}" class="inline-flex items-center gap-2 text-sm font-semibold text-brand hover:underline"><x-heroicon-o-arrow-left class="size-4" aria-hidden="true" />Danh sách Lead</a>
     <div class="mt-5 flex flex-wrap items-start justify-between gap-4"><div><p class="text-sm font-semibold uppercase tracking-widest text-brand">Lead</p><h1 class="mt-2 text-3xl font-bold">{{ $lead->displayName }}</h1><p class="mt-2 font-mono text-xs text-ink-muted">{{ $lead->publicId }}</p></div><x-ui.badge :tone="$lead->status === 'qualified' ? 'success' : 'neutral'">{{ $lead->status }}</x-ui.badge></div>
 
     @if(session('status'))<x-ui.alert class="mt-6" tone="success" title="Đã cập nhật">{{ session('status') }}</x-ui.alert>@endif
@@ -12,6 +12,15 @@
 
     <div class="mt-8 grid gap-6 md:grid-cols-2">
         <x-ui.card title="Thông tin"><dl class="space-y-3 text-sm"><div><dt class="text-ink-muted">Công ty</dt><dd>{{ $lead->companyName ?? 'Cá nhân' }}</dd></div><div><dt class="text-ink-muted">Email</dt><dd>{{ $lead->email ?? 'Chưa có' }}</dd></div><div><dt class="text-ink-muted">Điện thoại</dt><dd>{{ $lead->phone ?? 'Chưa có' }}</dd></div><div><dt class="text-ink-muted">Mã số thuế</dt><dd>{{ $lead->taxCode ?? 'Chưa có' }}</dd></div></dl></x-ui.card>
+        @if($lead->inquiryMessage !== null)
+            <x-ui.card title="Yêu cầu từ website">
+                <dl class="space-y-3 text-sm">
+                    <div><dt class="text-ink-muted">Chủ đề</dt><dd>{{ $lead->inquiryTopic }}</dd></div>
+                    <div><dt class="text-ink-muted">Thời điểm gửi</dt><dd>{{ $lead->inquirySubmittedAt }}</dd></div>
+                    <div><dt class="text-ink-muted">Nội dung</dt><dd class="mt-1 whitespace-pre-wrap leading-6">{{ $lead->inquiryMessage }}</dd></div>
+                </dl>
+            </x-ui.card>
+        @endif
         @if($lead->status === 'converted')
             <x-ui.card title="Kết quả chuyển đổi"><p class="text-sm text-ink-muted">Customer và Company được hiển thị bằng public ID; không tự liên kết khi thiếu bằng chứng xác minh.</p><dl class="mt-4 space-y-3 text-sm"><div><dt>Customer</dt><dd class="font-mono">{{ $lead->convertedCustomerPublicId ?? 'Không có' }}</dd></div><div><dt>Company</dt><dd class="font-mono">{{ $lead->convertedCompanyPublicId ?? 'Không có' }}</dd></div></dl></x-ui.card>
         @elseif($lead->canConvert)

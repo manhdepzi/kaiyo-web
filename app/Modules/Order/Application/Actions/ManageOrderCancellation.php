@@ -9,6 +9,7 @@ use App\Modules\Identity\Contracts\PermissionAuthorizer;
 use App\Modules\Identity\Infrastructure\Persistence\Models\UserAccount;
 use App\Modules\Inventory\Application\Services\InventoryReservationService;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\InventoryReservation;
+use App\Modules\Order\Application\Services\OrderStateFactRecorder;
 use App\Modules\Order\Application\Support\AuthorizesOrder;
 use App\Modules\Order\Contracts\PaymentCancellationPort;
 use App\Modules\Order\Infrastructure\Persistence\Models\CancellationRequest;
@@ -19,7 +20,7 @@ final readonly class ManageOrderCancellation
 {
     use AuthorizesOrder;
 
-    public function __construct(private PermissionAuthorizer $authorizer, private InventoryReservationService $inventory, private PaymentCancellationPort $payment) {}
+    public function __construct(private PermissionAuthorizer $authorizer, private InventoryReservationService $inventory, private PaymentCancellationPort $payment, private OrderStateFactRecorder $stateFacts) {}
 
     public function request(Order $order, UserAccount $actor, string $reason, string $requestKey): CancellationRequest
     {
@@ -90,6 +91,7 @@ final readonly class ManageOrderCancellation
                     'evidence_type' => 'cancellation_request', 'evidence_reference' => $lockedRequest->public_id,
                     'correlation_id' => request()->attributes->get('correlation_id'), 'occurred_at' => now(),
                 ]);
+                $this->stateFacts->record($order, $from);
             }
             $lockedRequest->forceFill([
                 'state' => $approve ? 'approved' : 'denied', 'decision_key' => $decisionKey, 'decision_hash' => $hash,

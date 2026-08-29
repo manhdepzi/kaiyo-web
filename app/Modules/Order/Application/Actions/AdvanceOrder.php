@@ -9,6 +9,7 @@ use App\Modules\Identity\Contracts\PermissionAuthorizer;
 use App\Modules\Identity\Infrastructure\Persistence\Models\UserAccount;
 use App\Modules\Inventory\Application\Services\InventoryReservationService;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\InventoryReservation;
+use App\Modules\Order\Application\Services\OrderStateFactRecorder;
 use App\Modules\Order\Application\Support\AuthorizesOrder;
 use App\Modules\Order\Infrastructure\Persistence\Models\OrderTransitionOperation;
 use DomainException;
@@ -21,7 +22,7 @@ final readonly class AdvanceOrder
     /** @var array<string, string> */
     private const NEXT = ['pending' => 'confirmed', 'confirmed' => 'processing', 'processing' => 'packed', 'packed' => 'shipping', 'shipping' => 'delivered', 'delivered' => 'completed'];
 
-    public function __construct(private PermissionAuthorizer $authorizer, private InventoryReservationService $inventory) {}
+    public function __construct(private PermissionAuthorizer $authorizer, private InventoryReservationService $inventory, private OrderStateFactRecorder $stateFacts) {}
 
     public function execute(Order $order, string $targetState, string $operationKey, int $expectedVersion, string $evidenceType, string $evidenceReference, ?UserAccount $actor = null): Order
     {
@@ -70,6 +71,7 @@ final readonly class AdvanceOrder
                 'operation_key' => $operationKey, 'request_hash' => $hash, 'order_id' => $locked->getKey(),
                 'result_state' => $targetState, 'result_version' => $expectedVersion + 1, 'created_at' => now(),
             ]);
+            $this->stateFacts->record($locked, $from);
 
             return $locked->refresh();
         }, 3);

@@ -121,6 +121,53 @@
     }
 }
 
+@keyframes product-media-breathe {
+    0%, 100% { transform: scale(0.96) translateY(0); }
+    50% { transform: scale(1.035) translateY(-0.35rem); }
+}
+
+.product-media-motion {
+    animation: product-media-breathe 5.5s ease-in-out infinite;
+    transform-origin: center;
+    transition: transform 500ms ease;
+}
+
+[data-slideshow]:hover .product-media-motion,
+[data-slideshow]:focus-within .product-media-motion {
+    animation-play-state: paused;
+    transform: scale(1.08);
+}
+
+.product-deep-zoom [data-zoom-image] {
+    transform: scale(1);
+    transform-origin: center;
+    transition: transform 180ms ease-out;
+    will-change: transform;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .product-deep-zoom {
+        cursor: zoom-in;
+    }
+
+    .product-deep-zoom.is-zooming {
+        cursor: zoom-out;
+    }
+
+    .product-deep-zoom.is-zooming [data-gallery-slide]:not([hidden]) [data-zoom-image] {
+        transform: scale(1.45);
+    }
+}
+
+[data-variant-option]:has(input:checked) [data-variant-check] {
+    border-color: var(--kaiyo-brand);
+    background: var(--kaiyo-surface);
+}
+
+[data-variant-option]:has(input:checked) [data-variant-check] svg {
+    opacity: 1;
+}
+
 @media (prefers-reduced-motion: reduce) {
     *,
     *::before,

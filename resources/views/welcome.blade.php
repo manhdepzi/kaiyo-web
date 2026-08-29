@@ -4,28 +4,73 @@
 @section('meta_description', 'Tra cứu sản phẩm theo tên hoặc SKU, tiếp cận quy trình mua hàng và báo giá minh bạch tại Kaiyo.')
 
 @section('content')
-<section class="theme-dark overflow-hidden bg-canvas text-ink">
-    <div class="mx-auto grid max-w-7xl items-center gap-12 px-5 py-20 lg:grid-cols-[1.15fr_0.85fr] lg:px-8 lg:py-28">
-        <div>
-            <x-ui.badge tone="info">Commerce · B2B · CRM</x-ui.badge>
-            <h1 class="mt-6 max-w-3xl text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">{{ $heroBanner?->headline ?? 'Tìm đúng sản phẩm. Đi đến quyết định nhanh hơn.' }}</h1>
-            <p class="mt-6 max-w-2xl text-lg leading-8 text-ink-muted">{{ $heroBanner?->body ?? 'Tra cứu theo tên hoặc SKU và bắt đầu quy trình mua hàng hay báo giá từ một nguồn thông tin thống nhất.' }}</p>
-            <form action="{{ route('public.search') }}" method="GET" role="search" class="mt-8 flex max-w-2xl flex-col gap-3 sm:flex-row">
-                <label for="hero-search" class="sr-only">Tìm sản phẩm hoặc SKU</label>
-                <input id="hero-search" name="q" type="search" maxlength="100" placeholder="Tên sản phẩm hoặc SKU" class="min-h-12 flex-1 rounded-control border border-line bg-surface px-4 text-ink placeholder:text-ink-muted">
-                <x-ui.button type="submit" size="lg">Tìm sản phẩm</x-ui.button>
-            </form>
-            @if($heroBanner?->ctaLabel && $heroBanner?->ctaUrl)<div class="mt-4"><x-ui.button :href="$heroBanner->ctaUrl" variant="secondary">{{ $heroBanner->ctaLabel }}</x-ui.button></div>@endif
-        </div>
-        <div class="relative mx-auto aspect-square w-full max-w-md" aria-hidden="true">
-            <div class="absolute inset-4 rounded-full border border-line"></div>
-            <div class="absolute inset-16 rounded-full border border-brand"></div>
-            <div class="absolute left-1/2 top-6 h-[calc(100%-3rem)] w-px -translate-x-1/2 bg-line"></div>
-            <div class="absolute left-6 top-1/2 h-px w-[calc(100%-3rem)] -translate-y-1/2 bg-line"></div>
-            <div class="absolute inset-1/3 rounded-full bg-brand-soft"></div>
+<section class="bg-canvas" aria-label="Sản phẩm nổi bật">
+    <h1 class="sr-only">Tìm đúng sản phẩm. Đi đến quyết định nhanh hơn.</h1>
+    <div class="mx-auto max-w-[1600px] px-0 sm:px-5 lg:px-8 lg:py-6">
+        <div data-slideshow data-interval="3000" class="relative overflow-hidden bg-surface shadow-panel sm:rounded-panel">
+            <div class="relative aspect-[3951/1672] w-full">
+                @foreach($heroSlides as $slide)
+                    <article data-slide @if(!$loop->first) hidden @endif aria-hidden="{{ $loop->first ? 'false' : 'true' }}" class="absolute inset-0">
+                        @if($slide->imagePath)
+                            @if($slide->ctaUrl)<a href="{{ $slide->ctaUrl }}" class="block h-full" aria-label="{{ $slide->headline }}">@endif
+                            <img src="{{ $slide->imagePath }}" alt="{{ $slide->headline }}" width="3951" height="1672" @if($loop->first) fetchpriority="high" @else loading="lazy" @endif class="h-full w-full object-cover">
+                            @if($slide->ctaUrl)</a>@endif
+                        @else
+                            <div class="flex h-full items-center bg-brand-soft px-8 py-12 sm:px-16">
+                                <div class="max-w-2xl">
+                                    <h1 class="text-3xl font-bold tracking-tight text-ink sm:text-5xl">{{ $slide->headline }}</h1>
+                                    @if($slide->body)<p class="mt-5 text-lg text-ink-muted">{{ $slide->body }}</p>@endif
+                                    @if($slide->ctaLabel && $slide->ctaUrl)<div class="mt-7"><x-ui.button :href="$slide->ctaUrl" icon="arrow-right" icon-position="end">{{ $slide->ctaLabel }}</x-ui.button></div>@endif
+                                </div>
+                            </div>
+                        @endif
+                    </article>
+                @endforeach
+            </div>
+
+            @if(count($heroSlides) > 1)
+                <button type="button" data-slide-prev class="absolute left-3 top-1/2 grid size-11 -translate-y-1/2 place-items-center rounded-full bg-black/45 text-white shadow-lg backdrop-blur-sm transition hover:scale-105 hover:bg-black/65 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white" aria-label="Banner trước"><x-heroicon-o-chevron-left class="size-6" aria-hidden="true" /></button>
+                <button type="button" data-slide-next class="absolute right-3 top-1/2 grid size-11 -translate-y-1/2 place-items-center rounded-full bg-black/45 text-white shadow-lg backdrop-blur-sm transition hover:scale-105 hover:bg-black/65 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white" aria-label="Banner tiếp theo"><x-heroicon-o-chevron-right class="size-6" aria-hidden="true" /></button>
+                <div class="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-2 rounded-full bg-black/35 px-3 py-2" role="group" aria-label="Chọn banner">
+                    @foreach($heroSlides as $slide)
+                        <button type="button" data-slide-dot="{{ $loop->index }}" class="size-2.5 rounded-full border border-white bg-white {{ $loop->first ? '' : 'opacity-45' }}" aria-label="Xem banner {{ $loop->iteration }}" aria-current="{{ $loop->first ? 'true' : 'false' }}"></button>
+                    @endforeach
+                </div>
+            @endif
         </div>
     </div>
 </section>
+
+@if (count($featuredProducts) > 0)
+<section class="mx-auto max-w-7xl px-5 py-16 lg:px-8" aria-labelledby="featured-products-title">
+    <div class="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
+        <div>
+            <p class="text-sm font-semibold uppercase tracking-widest text-brand">Danh mục thực tế</p>
+            <h2 id="featured-products-title" class="mt-3 text-3xl font-bold tracking-tight">Sản phẩm nổi bật</h2>
+            <p class="mt-3 max-w-2xl text-ink-muted">Ảnh và biến thể đang được hiển thị từ dữ liệu Catalog để bạn kiểm tra trực tiếp.</p>
+        </div>
+        <x-ui.button :href="route('public.search')" variant="secondary" icon="arrow-right" icon-position="end">Xem tất cả</x-ui.button>
+    </div>
+    <div class="mt-9 grid gap-6 md:grid-cols-3">
+        @foreach ($featuredProducts as $product)
+            <article class="group overflow-hidden rounded-panel border border-line bg-surface shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-panel">
+                <a href="{{ route('public.product', $product->slug) }}" class="block aspect-[4/3] overflow-hidden bg-white">
+                    @if (isset($product->images[0]))
+                        <img src="{{ $product->images[0]->url }}" alt="{{ $product->images[0]->alt }}" width="{{ $product->images[0]->width }}" height="{{ $product->images[0]->height }}" loading="lazy" class="h-full w-full object-contain p-6 transition duration-500 ease-out group-hover:scale-110">
+                    @else
+                        <span class="grid h-full place-items-center text-sm text-ink-muted">Ảnh đang cập nhật</span>
+                    @endif
+                </a>
+                <div class="p-6">
+                    <p class="text-xs font-semibold uppercase tracking-widest text-brand">{{ $product->category->name }}</p>
+                    <h3 class="mt-2 text-xl font-semibold"><a class="hover:text-brand" href="{{ route('public.product', $product->slug) }}">{{ $product->name }}</a></h3>
+                    <p class="mt-3 text-sm text-ink-muted">{{ count($product->variants) }} biến thể đang công bố</p>
+                </div>
+            </article>
+        @endforeach
+    </div>
+</section>
+@endif
 
 <section class="mx-auto max-w-7xl px-5 py-16 lg:px-8" aria-labelledby="journey-title">
     <div class="max-w-2xl">
@@ -46,7 +91,7 @@
             <h2 class="text-2xl font-bold">Bắt đầu với danh mục Kaiyo</h2>
             <p class="mt-2 text-ink-muted">Duyệt toàn bộ sản phẩm đang được công bố trên hệ thống.</p>
         </div>
-        <x-ui.button :href="route('public.search')" size="lg">Xem sản phẩm</x-ui.button>
+        <x-ui.button :href="route('public.search')" size="lg" icon="magnifying-glass">Xem sản phẩm</x-ui.button>
     </div>
 </section>
 @endsection

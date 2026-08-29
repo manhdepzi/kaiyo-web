@@ -1,6 +1,6 @@
 # Step 33 — CMS Task Record
 
-- Status: `IN PROGRESS — MYSQL/BROWSER GATES OPEN`
+- Status: `IN PROGRESS — MYSQL VERIFIED; BROWSER GATE OPEN`
 - Started: 2026-08-25
 - Contract: approved separate Page roots/revisions from the Step 07 schema dictionary.
 
@@ -26,11 +26,12 @@
 ## Verification evidence
 
 - CMS/Media focused: 20 tests / 194 assertions.
-- Full regression: 163 passed / 1129 assertions; four isolated MySQL trigger tests remain intentionally skipped on SQLite.
+- Default full regression: 182 passed / 1268 assertions with four documented MySQL-only skips.
+- Expanded isolated MySQL 8.4 matrix: 69 tests / 475 assertions with one documented skip for the committed multi-process probe; all 15 CMS cases pass on MySQL.
 - PHPStan level 8, Pint and Vite production build pass.
 
 ## Remaining
 
-- MySQL execution evidence for the new CMS immutable-revision triggers and final browser/query gates.
+- Final browser/query evidence.
 
-No migration was executed against the live `kaiyo` database in this task.
+MySQL verification used disposable `kaiyo_test`, which was dropped afterward. Live `kaiyo` retained its 18 applied migrations and was not used for test data.

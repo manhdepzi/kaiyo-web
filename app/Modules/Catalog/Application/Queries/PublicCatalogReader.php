@@ -14,6 +14,8 @@ use App\Modules\Catalog\Infrastructure\Persistence\Models\Variant;
 
 final class PublicCatalogReader
 {
+    public function __construct(private readonly PublicProductContentReader $content) {}
+
     public function category(string $slug): ?PublicCatalogFacet
     {
         $category = Category::query()->where('slug', $slug)->where('status', 'active')->first();
@@ -47,9 +49,56 @@ final class PublicCatalogReader
             return null;
         }
 
+        return $this->productData($product);
+    }
+
+    /** @return list<PublicProductView> */
+    public function featured(int $limit = 3): array
+    {
+        $products = Product::query()
+            ->with([
+                'category' => fn ($query) => $query->where('status', 'active'),
+                'brand' => fn ($query) => $query->where('status', 'active'),
+                'variants' => fn ($query) => $query->where('status', 'active')->orderBy('id'),
+            ])
+            ->where('status', 'active')
+            ->whereHas('category', fn ($query) => $query->where('status', 'active'))
+            ->where(fn ($query) => $query->whereNull('brand_id')->orWhereHas('brand', fn ($brand) => $brand->where('status', 'active')))
+            ->whereHas('variants', fn ($query) => $query->where('status', 'active'))
+            ->orderByDesc('id')
+            ->limit(max(1, min($limit, 12)))
+            ->get();
+
+        return array_values($products->map(fn (Product $product): PublicProductView => $this->productData($product))->all());
+    }
+
+    /** @return list<PublicProductView> */
+    public function related(PublicProductView $current, int $limit = 4): array
+    {
+        $products = Product::query()
+            ->with([
+                'category' => fn ($query) => $query->where('status', 'active'),
+                'brand' => fn ($query) => $query->where('status', 'active'),
+                'variants' => fn ($query) => $query->where('status', 'active')->orderBy('id'),
+            ])
+            ->where('status', 'active')
+            ->where('primary_category_id', $current->category->id)
+            ->where('public_id', '!=', $current->publicId)
+            ->whereHas('variants', fn ($query) => $query->where('status', 'active'))
+            ->orderByDesc('id')
+            ->limit(max(1, min($limit, 8)))
+            ->get();
+
+        return array_values($products->map(fn (Product $product): PublicProductView => $this->productData($product))->all());
+    }
+
+    private function productData(Product $product): PublicProductView
+    {
+        $name = (string) $product->name;
+
         return new PublicProductView(
             $product->public_id,
-            (string) $product->name,
+            $name,
             $product->slug,
             is_string($product->description) ? $product->description : null,
             $this->categoryData($product->category),
@@ -61,6 +110,10 @@ final class PublicCatalogReader
                 $variant->sku,
                 (int) $variant->quantity_scale,
             ))->all()),
+            $this->content->images($product->public_id, $product->slug, $name),
+            is_string($product->detailed_description) ? $product->detailed_description : null,
+            is_string($product->seo_title) ? $product->seo_title : null,
+            is_string($product->seo_description) ? $product->seo_description : null,
         );
     }
 

@@ -50,8 +50,8 @@
             <p class="mt-3 text-sm text-ink-muted">V1 B2B sử dụng thanh toán đủ bằng chuyển khoản ngân hàng. Thời hạn mặc định: {{ config('quotation.default_validity_days') }} ngày.</p>
         </x-ui.card>
         <div class="flex flex-wrap gap-3">
-            <x-ui.button type="submit" :disabled="!$customerLinked || count($shippingMethods) === 0">Gửi yêu cầu báo giá</x-ui.button>
-            <x-ui.button :href="route('public.search')" variant="ghost">Quay lại sản phẩm</x-ui.button>
+            <x-ui.button type="submit" :disabled="!$customerLinked || count($shippingMethods) === 0" icon="paper-airplane">Gửi yêu cầu báo giá</x-ui.button>
+            <x-ui.button :href="route('public.search')" variant="ghost" icon="arrow-left">Quay lại sản phẩm</x-ui.button>
         </div>
     </form>
 </section>

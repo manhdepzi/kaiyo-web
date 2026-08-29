@@ -7,6 +7,7 @@ namespace App\Modules\Inventory\Application\Actions;
 use App\Modules\Identity\Authorization\AuthorizationScope;
 use App\Modules\Identity\Contracts\PermissionAuthorizer;
 use App\Modules\Identity\Infrastructure\Persistence\Models\UserAccount;
+use App\Modules\Inventory\Application\Services\InventoryAvailabilityFactRecorder;
 use App\Modules\Inventory\Domain\InventoryQuantity;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\InventoryAdjustment;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\StockBalance;
@@ -16,7 +17,7 @@ use Illuminate\Support\Facades\DB;
 
 final readonly class ApproveInventoryAdjustment
 {
-    public function __construct(private PermissionAuthorizer $authorizer) {}
+    public function __construct(private PermissionAuthorizer $authorizer, private InventoryAvailabilityFactRecorder $availabilityFacts) {}
 
     public function execute(UserAccount $approver, InventoryAdjustment $adjustment, int $expectedVersion): InventoryAdjustment
     {
@@ -54,6 +55,7 @@ final readonly class ApproveInventoryAdjustment
                 'approved_by_user_account_id' => $approver->getKey(), 'stock_movement_id' => $movementId, 'status' => 'executed',
                 'decided_at' => now(), 'lock_version' => $expectedVersion + 1,
             ])->save();
+            $this->availabilityFacts->record($balance, 'adjusted');
 
             return $locked->refresh();
         }, 3);

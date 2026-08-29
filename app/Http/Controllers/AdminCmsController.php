@@ -20,6 +20,7 @@ use App\Modules\CMS\Application\Actions\PublishFaq;
 use App\Modules\CMS\Application\Actions\ScheduleCmsPublication;
 use App\Modules\CMS\Application\Actions\UnpublishCmsContent;
 use App\Modules\CMS\Application\Queries\AdminCmsDirectoryReader;
+use App\Modules\CMS\Application\Support\HomeSlideCatalog;
 use App\Modules\CMS\Infrastructure\Persistence\Models\Article;
 use App\Modules\CMS\Infrastructure\Persistence\Models\ArticleRevision;
 use App\Modules\CMS\Infrastructure\Persistence\Models\Banner;
@@ -41,7 +42,7 @@ final class AdminCmsController
 {
     public function index(AdminCmsDirectoryReader $reader): View
     {
-        return view('admin.content', ['content' => $reader->read()]);
+        return view('admin.content', ['content' => $reader->read(), 'slideImages' => HomeSlideCatalog::options()]);
     }
 
     public function storeArticle(Request $request, CreateArticleDraft $action): RedirectResponse
@@ -73,9 +74,9 @@ final class AdminCmsController
     public function storeBanner(Request $request, CreateBannerDraft $action): RedirectResponse
     {
         $actor = $this->actor($request);
-        $values = $request->validate(['code' => ['required', 'string', 'max:180'], 'placement' => ['required', 'string', 'max:100'], 'headline' => ['required', 'string', 'max:240'], 'body' => ['nullable', 'string', 'max:1000'], 'cta_label' => ['nullable', 'string', 'max:100'], 'cta_url' => ['nullable', 'string', 'max:2048']]);
+        $values = $request->validate(['code' => ['required', 'string', 'max:180'], 'placement' => ['required', 'string', 'max:100'], 'headline' => ['required', 'string', 'max:240'], 'body' => ['nullable', 'string', 'max:1000'], 'cta_label' => ['nullable', 'string', 'max:100'], 'cta_url' => ['nullable', 'string', 'max:2048'], 'image_path' => ['nullable', 'string', Rule::in(array_keys(HomeSlideCatalog::options()))], 'sort_order' => ['sometimes', 'integer', 'min:0', 'max:100000']]);
         try {
-            $action->execute($actor, (string) $values['code'], (string) $values['placement'], (string) $values['headline'], $this->optional($values, 'body'), $this->optional($values, 'cta_label'), $this->optional($values, 'cta_url'));
+            $action->execute($actor, (string) $values['code'], (string) $values['placement'], (string) $values['headline'], $this->optional($values, 'body'), $this->optional($values, 'cta_label'), $this->optional($values, 'cta_url'), $this->optional($values, 'image_path'), (int) ($values['sort_order'] ?? 0));
         } catch (DomainException|AuthorizationException $exception) {
             return $this->failed($exception);
         }
@@ -126,9 +127,9 @@ final class AdminCmsController
     public function reviseBanner(Request $request, string $banner, CreateBannerRevision $action): RedirectResponse
     {
         $model = Banner::query()->where('public_id', $banner)->firstOrFail();
-        $values = $request->validate(['lock_version' => ['required', 'integer', 'min:0'], 'headline' => ['required', 'string', 'max:240'], 'body' => ['nullable', 'string', 'max:1000'], 'cta_label' => ['nullable', 'string', 'max:100'], 'cta_url' => ['nullable', 'string', 'max:2048']]);
+        $values = $request->validate(['lock_version' => ['required', 'integer', 'min:0'], 'headline' => ['required', 'string', 'max:240'], 'body' => ['nullable', 'string', 'max:1000'], 'cta_label' => ['nullable', 'string', 'max:100'], 'cta_url' => ['nullable', 'string', 'max:2048'], 'image_path' => ['nullable', 'string', Rule::in(array_keys(HomeSlideCatalog::options()))], 'sort_order' => ['sometimes', 'integer', 'min:0', 'max:100000']]);
         try {
-            $action->execute($this->actor($request), $model, (int) $values['lock_version'], (string) $values['headline'], $this->optional($values, 'body'), $this->optional($values, 'cta_label'), $this->optional($values, 'cta_url'));
+            $action->execute($this->actor($request), $model, (int) $values['lock_version'], (string) $values['headline'], $this->optional($values, 'body'), $this->optional($values, 'cta_label'), $this->optional($values, 'cta_url'), $this->optional($values, 'image_path'), (int) ($values['sort_order'] ?? 0));
         } catch (DomainException|AuthorizationException $exception) {
             return $this->failed($exception);
         }

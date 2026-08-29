@@ -76,6 +76,12 @@ final class ShippingTest extends TestCase
         self::assertSame(90_000, InventoryQuantity::from((string) $balance->on_hand_qty)->units);
         self::assertSame(1, DB::table('stock_movements')->where('type', 'reservation_committed')->count());
         self::assertSame(3, DB::table('shipment_operations')->count());
+        self::assertSame(
+            ['ready', 'packed', 'dispatched'],
+            DB::table('dispatch_records')->where('event_type', 'shipping.shipment.state.changed')
+                ->where('aggregate_public_id', $shipment->public_id)->orderBy('id')->pluck('payload')
+                ->map(fn (string $payload): string => (string) json_decode($payload, true, 512, JSON_THROW_ON_ERROR)['to_state'])->all(),
+        );
     }
 
     public function test_carrier_timeout_becomes_visible_unknown_without_blocking_or_duplicate_booking(): void
@@ -111,6 +117,8 @@ final class ShippingTest extends TestCase
         self::assertSame('confirmed', $order->refresh()->state);
         self::assertSame(1, DB::table('reconciliation_cases')->where('subject_type', 'shipment')->where('state', 'open')->count());
         self::assertSame(1, DB::table('shipment_operations')->where('action', 'book')->count());
+        self::assertSame(2, DB::table('dispatch_records')->where('event_type', 'shipping.shipment.state.changed')
+            ->where('aggregate_public_id', $shipment->public_id)->count());
     }
 
     public function test_signed_tracking_is_monotonic_deduplicated_correctable_and_delivers_order(): void
@@ -159,6 +167,12 @@ final class ShippingTest extends TestCase
         } catch (DomainException) {
             self::assertSame('delivered', $corrected->refresh()->state);
         }
+        self::assertSame(
+            ['ready', 'packed', 'dispatched', 'in_transit', 'exception', 'delivered'],
+            DB::table('dispatch_records')->where('event_type', 'shipping.shipment.state.changed')
+                ->where('aggregate_public_id', $shipment->public_id)->orderBy('id')->pluck('payload')
+                ->map(fn (string $payload): string => (string) json_decode($payload, true, 512, JSON_THROW_ON_ERROR)['to_state'])->all(),
+        );
     }
 
     public function test_mysql_shipping_evidence_triggers_reject_mutation_and_deletion(): void

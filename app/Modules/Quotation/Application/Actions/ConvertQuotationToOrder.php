@@ -20,6 +20,7 @@ use App\Modules\Inventory\Application\Services\InventoryAllocator;
 use App\Modules\Inventory\Application\Services\InventoryReservationService;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\InventoryReservation;
 use App\Modules\Quotation\Application\Data\ConvertQuotationCommand;
+use App\Modules\Quotation\Application\Services\QuotationStateFactRecorder;
 use App\Modules\Quotation\Infrastructure\Persistence\Models\Quote;
 use App\Modules\Quotation\Infrastructure\Persistence\Models\QuoteRevision;
 use DomainException;
@@ -37,6 +38,7 @@ final readonly class ConvertQuotationToOrder
         private PaymentRegistrationPort $paymentRegistration,
         private ShippingRegistrationPort $shippingRegistration,
         private StoreDispatchFact $dispatchFacts,
+        private QuotationStateFactRecorder $stateFacts,
     ) {}
 
     public function execute(ConvertQuotationCommand $command): CheckoutResult
@@ -100,9 +102,11 @@ final readonly class ConvertQuotationToOrder
                 $this->paymentRegistration->register($order->refresh());
                 $this->shippingRegistration->register($order->refresh());
                 DB::table('order_status_history')->insert(['order_id' => $order->getKey(), 'from_state' => null, 'to_state' => 'pending', 'reason_code' => 'quote_converted', 'occurred_at' => now()]);
+                $from = $revision->state;
                 $revision->forceFill(['state' => 'converted', 'converted_at' => now(), 'lock_version' => $revision->lock_version + 1])->save();
                 DB::table('quote_operations')->insert(['operation_key' => 'convert:'.$command->operationKey, 'request_hash' => $hash, 'quote_revision_id' => $revision->getKey(), 'action' => 'convert', 'result_state' => 'converted', 'result_version' => $revision->lock_version, 'created_at' => now()]);
                 DB::table('quote_conversion_operations')->insert(['operation_key' => $command->operationKey, 'request_hash' => $hash, 'quote_revision_id' => $revision->getKey(), 'result_order_id' => $order->getKey(), 'actor_user_account_id' => $command->actor->getKey(), 'created_at' => now()]);
+                $this->stateFacts->record($revision, $from);
                 $this->dispatchFacts->record(new DispatchFact(
                     'commerce.order.placed:v1:'.$order->public_id,
                     'commerce.order.placed',

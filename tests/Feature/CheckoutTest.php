@@ -82,7 +82,8 @@ final class CheckoutTest extends TestCase
         self::assertSame(1, DB::table('orders')->count());
         self::assertSame(1, DB::table('inventory_reservations')->count());
         self::assertSame(1, DB::table('checkout_operations')->count());
-        self::assertSame(1, DB::table('dispatch_records')->count());
+        self::assertSame(1, DB::table('dispatch_records')->where('event_type', 'commerce.order.placed')->count());
+        self::assertSame(1, DB::table('dispatch_records')->where('event_type', 'inventory.availability.changed')->count());
 
         $this->expectException(DomainException::class);
         app(PlaceCheckoutOrder::class)->execute(new CheckoutCommand(

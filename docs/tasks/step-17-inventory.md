@@ -7,6 +7,8 @@
 
 Implement Warehouse, Variant stock balances, append-only movements, source-keyed reservations/items and locked idempotent reserve/release/commit/payment-expiry operations. B2C reserves on Order creation, B2B on quote-to-order, commit occurs on dispatch, V1 never backorders, and verified payment prevents automatic expiry.
 
+Inventory availability mutations also persist the approved `inventory.availability.changed` v1 fact in the same transaction. The fact is identity/version-only, contains no quantity or adjustment reason, retries do not duplicate a balance version and rollback removes both state and fact.
+
 ## Acceptance
 
 - [x] `available = on_hand - active_reserved` never becomes negative.
