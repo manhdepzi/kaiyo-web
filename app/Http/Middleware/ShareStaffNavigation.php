@@ -28,6 +28,7 @@ final readonly class ShareStaffNavigation
             'can_create_companies' => $this->authorizer->allows($account, 'crm.companies.create', $scope),
             'quotes' => $this->authorizer->allows($account, 'quotes.read', AuthorizationScope::module('quotes')),
             'orders' => $this->authorizer->allows($account, 'orders.read', AuthorizationScope::module('orders')),
+            'cancellations' => $this->authorizer->allows($account, 'orders.cancel_decide', AuthorizationScope::module('orders')),
         ] : []);
 
         return $next($request);

@@ -24,7 +24,10 @@ Configuration is environment-owned and bounded in code:
 
 - Use the private Admin **Outbox** monitor; access requires `system.audit.read`, verified account and confirmed staff 2FA.
 - Use `php artisan outbox:status` for a read-only bounded summary. Add `--json` for monitoring ingestion; the output contains counts and ages only, never payloads or stored error details.
+- Use `php artisan operations:health --json` when a deployment needs one read-only readiness, Outbox and Growth summary. It contains only health status, counts, ages and bounded error codes; it never exposes payloads, hashes or aggregate identities.
 - Deployment-owned alert gates may call `outbox:status --max-pending-age=<seconds> --max-publishing-age=<seconds> --fail-on-dead`. No age threshold is assumed when those options are absent.
+- Use `php artisan outbox:retention-status` to inspect published counts and policy eligibility by approved fact type. Add `--json` for automation or `--require-complete-policy` to enforce the legal-policy gate. The command is read-only and never exposes payloads or aggregate identities.
+- Use `php artisan outbox:consumer-coverage` to inspect current fact owner/consumer labels. Add `--require-all-covered` only when all approved facts are expected to have a consumer; it currently fails for the explicitly recorded `commerce.order.placed` gap.
 - Watch pending count/oldest age, records stuck in `publishing`, dead count and error-code concentration.
 - Never copy payload JSON or hashes into tickets, chat, metrics labels or public logs.
 
@@ -49,3 +52,5 @@ Configuration is environment-owned and bounded in code:
 - Growing backlog with healthy MySQL: inspect consumer latency/failure before increasing workers or limits.
 
 Requeueing a dead fact, changing payload/version, shortening retention or deleting evidence requires an approved recovery operation with exact targets, compatibility assessment and rollback/reconciliation proof.
+
+All `OUTBOX_RETENTION_*_DAYS` values intentionally default to unset. An unset class reports `UNAPPROVED` and zero eligible records; a value below one or any malformed/unknown policy fails closed. The status command does not authorize or implement deletion even after all durations are configured.

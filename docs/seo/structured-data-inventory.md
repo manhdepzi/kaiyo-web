@@ -18,8 +18,9 @@ Kaiyo emits one JSON-LD `Product` node on an active, publicly sellable product p
 | `sku` | First active public Variant in stable Catalog order | Only when a public Variant exists |
 | `brand` | Active Brand name as a `Brand` node | Only when assigned |
 | `additionalProperty` | Published Product presentation specification label/value pairs | Only when specifications exist |
+| `aggregateRating` | Average/count derived only from approved verified-purchase Product reviews | Only when at least one approved review exists |
 
-`offers`, price, currency, availability, inventory, ratings and reviews are prohibited until an approved public source contract exists. Delivery escapes JSON for an HTML script context and automated tests decode the emitted payload, assert the exact key inventory and reject prohibited commerce/review claims.
+`offers`, price, currency, availability and inventory are prohibited until an approved public source contract exists. Individual review JSON-LD is not emitted. Pending/rejected reviews never influence HTML or structured data. `aggregateRating` contains only `@type=AggregateRating`, bounded `ratingValue`, `reviewCount`, `bestRating=5` and `worstRating=1` calculated from approved review rows. Delivery escapes JSON for an HTML script context and automated tests verify both omission before moderation and exact publication after approval.
 
 ## Product breadcrumb
 

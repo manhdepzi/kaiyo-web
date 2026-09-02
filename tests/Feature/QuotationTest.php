@@ -11,6 +11,8 @@ use App\Modules\Checkout\Application\Data\AddressData;
 use App\Modules\Checkout\Application\Data\TaxPreparation;
 use App\Modules\Checkout\Contracts\TaxCalculationPort;
 use App\Modules\CRM\Infrastructure\Persistence\Models\Customer;
+use App\Modules\Foundation\Application\PublishDispatchRecord;
+use App\Modules\Foundation\Infrastructure\Persistence\Models\DispatchRecord;
 use App\Modules\Identity\Authorization\AuthorizationScope;
 use App\Modules\Identity\Infrastructure\Persistence\Models\PermissionDefinition;
 use App\Modules\Identity\Infrastructure\Persistence\Models\ScopedGrant;
@@ -48,6 +50,10 @@ final class QuotationTest extends TestCase
         self::assertNotSame($token, $created->quote->guest_access_hash);
         self::assertSame(1, $created->revision->lines()->count());
         self::assertSame('sales', $created->revision->required_approval_tier);
+        self::assertDatabaseHas('analytics_event_intents', [
+            'event_type' => 'quotation.requested', 'subject_public_id' => $created->quote->public_id, 'state' => 'pending',
+        ]);
+        self::assertSame(1, DB::table('analytics_event_intents')->where('event_type', 'quotation.requested')->count());
 
         $staff = UserAccount::factory()->create();
         $this->grant($staff, 'quotes.manage', AuthorizationScope::module('quotes'));
@@ -83,6 +89,11 @@ final class QuotationTest extends TestCase
             ['submitted', 'processing', 'sent', 'viewed', 'accepted'],
             $facts->map(fn (object $fact): string => (string) json_decode((string) $fact->payload, true, 512, JSON_THROW_ON_ERROR)['to_state'])->all(),
         );
+        $acceptedFact = DispatchRecord::query()->where('event_type', 'quotation.revision.state.changed')
+            ->where('aggregate_public_id', $created->quote->public_id)
+            ->whereJsonContains('payload->to_state', 'accepted')->firstOrFail();
+        app(PublishDispatchRecord::class)->publish($acceptedFact);
+        self::assertSame(0, DB::table('notifications')->count(), 'Guest quotation facts must not leak into a Customer feed.');
         try {
             $lifecycle->rejectGuest($accepted, $token, 'quote-reject-late');
             self::fail('Accepted revision must remain terminal for Step 25.');
@@ -123,6 +134,14 @@ final class QuotationTest extends TestCase
         self::assertSame(1, DB::table('quote_approvals')->count());
         $sent = $lifecycle->issue($submitted, 'manager-issue', 2, $issuer);
         self::assertSame('sent', $sent->state);
+        $sentFact = DispatchRecord::query()->where('event_type', 'quotation.revision.state.changed')
+            ->where('aggregate_public_id', $created->quote->public_id)
+            ->whereJsonContains('payload->to_state', 'sent')->firstOrFail();
+        app(PublishDispatchRecord::class)->publish($sentFact);
+        app(PublishDispatchRecord::class)->publish($sentFact);
+        self::assertSame(1, DB::table('notifications')->where('quote_id', $created->quote->getKey())
+            ->whereNull('order_id')->where('template_key', 'quotation.sent')->count());
+        self::assertSame(1, DB::table('notification_attempts')->count());
         $sourceHash = $sent->integrity_hash;
         $revised = app(CreateQuotationRevision::class)->execute($sent, ['payment_terms' => 'bank_transfer'], 15, 'manager-revise', $proposer);
         self::assertSame('sent', $sent->refresh()->state);

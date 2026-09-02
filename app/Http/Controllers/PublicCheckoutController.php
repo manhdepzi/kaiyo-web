@@ -11,6 +11,7 @@ use App\Modules\Checkout\Application\Actions\PlaceCheckoutOrder;
 use App\Modules\Checkout\Application\Data\AddressData;
 use App\Modules\Checkout\Application\Data\CheckoutCommand;
 use App\Modules\CRM\Infrastructure\Persistence\Models\Customer;
+use App\Modules\CRM\Infrastructure\Persistence\Models\CustomerAddress;
 use App\Modules\Identity\Infrastructure\Persistence\Models\UserAccount;
 use DomainException;
 use Illuminate\Contracts\View\View;
@@ -25,10 +26,12 @@ final class PublicCheckoutController extends Controller
     public function show(Request $request, CartContext $context, CartReader $reader): View
     {
         $resolved = $this->resolveCart($request, $context);
+        $customer = $this->customer($request);
 
         return view('public.checkout', [
             'cart' => $reader->read($resolved->cart),
-            'customerLinked' => $this->customer($request) !== null,
+            'customerLinked' => $customer !== null,
+            'checkoutAddress' => $customer === null ? null : $this->defaultAddress((int) $customer->getKey()),
             'shippingMethods' => $this->shippingMethods(),
             'paymentMethods' => $this->paymentMethods(),
         ]);
@@ -96,6 +99,7 @@ final class PublicCheckoutController extends Controller
                 shippingMethod: (string) $validated['shipping_method'],
                 paymentMethod: (string) $validated['payment_method'],
                 invoiceRequested: (bool) ($validated['invoice_requested'] ?? false),
+                analyticsConsentPublicId: $this->analyticsConsent($request),
             ));
         } catch (DomainException $exception) {
             report($exception);
@@ -163,5 +167,35 @@ final class PublicCheckoutController extends Controller
     private function optional(mixed $value): ?string
     {
         return is_string($value) && trim($value) !== '' ? trim($value) : null;
+    }
+
+    private function analyticsConsent(Request $request): ?string
+    {
+        $value = $request->cookie((string) config('analytics.consent_cookie'));
+
+        return is_string($value) && preg_match('/\A[0-9A-HJKMNP-TV-Z]{26}\z/', $value) === 1 ? $value : null;
+    }
+
+    /** @return array<string, string|null>|null */
+    private function defaultAddress(int $customerId): ?array
+    {
+        $address = CustomerAddress::query()->where('customer_id', $customerId)->where('status', 'active')
+            ->orderByDesc('is_default_shipping')->orderBy('id')->first();
+        if ($address === null) {
+            return null;
+        }
+
+        return [
+            'recipient_name' => $address->recipient_name,
+            'phone' => $address->phone,
+            'address_line_1' => $address->address_line_1,
+            'address_line_2' => $address->address_line_2,
+            'locality' => $address->locality,
+            'subdivision' => $address->subdivision,
+            'postal_code' => $address->postal_code,
+            'country_code' => $address->country_code,
+            'company_name' => $address->company_name,
+            'tax_code' => $address->tax_code,
+        ];
     }
 }

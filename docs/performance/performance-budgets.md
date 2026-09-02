@@ -28,5 +28,22 @@
 - Integrity assertions run during/after load: no oversell, duplicate order/payment/refund, lost dispatch or inconsistent snapshots.
 - AI workload is absent for V1; V2 reruns with separate capacity/pools.
 
-Runtime report remains pending until executable system and representative data exist.
+The read-only local dependency baseline is recorded in [runtime-baseline.md](./runtime-baseline.md). Production-like load, CWV and capacity evidence remains pending until the approved representative data profile and target environment exist.
 
+## Guarded public-read load definition
+
+`tests/load/v1-public-read-qualification.js` encodes the D006-A2 public-read portion of the qualification profile: 50 RPS for 30 minutes, then 200 RPS for five minutes, with server-response p95/p99 gates. It is intentionally not a production command:
+
+```powershell
+# Harmless local, 30-second smoke only (k6 must be installed separately)
+k6 run tests/load/v1-public-read-qualification.js
+
+# Explicitly approved staging qualification only
+$env:BASE_URL = 'https://approved-staging.example'
+$env:ALLOW_NONLOCAL_TARGET = '1'
+$env:PROFILE = 'qualification'
+$env:CONFIRM_QUALIFICATION = 'KAIYO_D006_A2'
+k6 run tests/load/v1-public-read-qualification.js
+```
+
+The script rejects unknown profiles, non-HTTP targets, non-local targets without explicit consent and qualification traffic without its confirmation token. It creates no commerce records and covers only public/readiness reads. Authenticated, checkout/payment, queue and representative-data integrity tests still need an approved isolated dataset, test identities and external-provider stubs before they can contribute release evidence.

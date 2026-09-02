@@ -17,6 +17,7 @@
             <file>tests/Feature/QuotationTest.php</file>
             <file>tests/Feature/CmsPageTest.php</file>
             <file>tests/Feature/DispatchOutboxTest.php</file>
+            <file>tests/Feature/RedisIntegrationTest.php</file>
         </testsuite>
     </testsuites>
     <source>
@@ -33,6 +34,11 @@
         <env name="DB_DATABASE" value="kaiyo_test" force="true"/>
         <env name="MAIL_MAILER" value="array" force="true"/>
         <env name="QUEUE_CONNECTION" value="sync" force="true"/>
+        <env name="REDIS_CLIENT" value="predis" force="true"/>
+        <env name="REDIS_HOST" value="127.0.0.1" force="true"/>
+        <env name="REDIS_PORT" value="6379" force="true"/>
+        <env name="REDIS_DB" value="15" force="true"/>
+        <env name="REDIS_PREFIX" value="kaiyo_test_" force="true"/>
         <env name="SESSION_DRIVER" value="array" force="true"/>
     </php>
 </phpunit>

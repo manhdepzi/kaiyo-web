@@ -66,24 +66,43 @@ final readonly class PublicProductContentReader
         })->all();
     }
 
+    /** @return list<array{rating:int,title:string,body:string,customer:string,submitted_at:string}> */
+    public function reviews(string $productPublicId): array
+    {
+        return array_values(DB::table('product_reviews as reviews')
+            ->join('products', 'products.id', '=', 'reviews.product_id')
+            ->join('customers', 'customers.id', '=', 'reviews.customer_id')
+            ->where('products.public_id', $productPublicId)->where('reviews.status', 'approved')
+            ->orderByDesc('reviews.submitted_at')->orderByDesc('reviews.id')->limit(50)
+            ->get(['reviews.rating', 'reviews.title', 'reviews.body', 'reviews.submitted_at', 'customers.display_name'])
+            ->map(fn (object $row): array => [
+                'rating' => (int) $row->rating,
+                'title' => (string) $row->title,
+                'body' => (string) $row->body,
+                'customer' => (string) $row->display_name,
+                'submitted_at' => (string) $row->submitted_at,
+            ])->all());
+    }
+
     /**
      * @param  list<string>  $purposes
      * @return list<array{id: int, public_id: string, detected_mime: string}>
      */
     private function assets(string $productPublicId, array $purposes, string $mimePattern): array
     {
-        return DB::table('catalog_media_references as references')
-            ->join('products', 'products.id', '=', 'references.product_id')
-            ->join('media_assets as assets', 'assets.id', '=', 'references.media_asset_id')
+        $assets = DB::table('catalog_media_references as media_refs')
+            ->join('products', 'products.id', '=', 'media_refs.product_id')
+            ->join('media_assets as assets', 'assets.id', '=', 'media_refs.media_asset_id')
             ->where('products.public_id', $productPublicId)
-            ->whereIn('references.purpose', $purposes)
+            ->whereIn('media_refs.purpose', $purposes)
             ->where('assets.status', 'active')->where('assets.scan_status', 'clean')->where('assets.access_class', 'public')
             ->where('assets.detected_mime', 'like', $mimePattern)
-            ->orderByRaw("CASE WHEN references.purpose = 'primary' THEN 0 ELSE 1 END")
-            ->orderBy('references.sort_order')->orderBy('references.id')
+            ->orderByRaw("CASE WHEN media_refs.purpose = 'primary' THEN 0 ELSE 1 END")
+            ->orderBy('media_refs.sort_order')->orderBy('media_refs.id')
             ->get(['assets.id', 'assets.public_id', 'assets.detected_mime'])
             ->map(fn (object $asset): array => ['id' => (int) $asset->id, 'public_id' => (string) $asset->public_id, 'detected_mime' => (string) $asset->detected_mime])
-            ->values()
             ->all();
+
+        return array_values($assets);
     }
 }

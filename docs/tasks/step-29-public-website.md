@@ -22,15 +22,16 @@
 - [x] Rebuilt Product detail SSR with category navigation, thumbnail gallery, pointer-aware moderate deep zoom, sticky configuration/CTA card, factual specifications and related products.
 - [x] Refined Product detail into a responsive three-column B2B layout with accessible variant cards, synchronized selected configuration, quantity stepper and reduced 1.45x pointer zoom.
 - [x] Strengthened Product SEO with unique title/description, canonical, large-preview robots policy, Open Graph/Twitter metadata, descriptive image markup, Product properties and BreadcrumbList JSON-LD without inventing offers or ratings.
+- [x] Bound Product gallery, video, technical specifications and detailed description to governed Admin Catalog data with safe local demo fallbacks; public media delivery fails closed unless the asset is active, clean and public.
 
 ## Current evidence
 
 - `PublicWebsiteTest` covers semantic SSR, public Catalog, Cart cookie/idempotency/merge/conflicts, Checkout login/profile/configuration/ownership and guest Quotation submission/access isolation.
 - `DemoCatalogPresentationTest` covers idempotent product seeding, gallery/deep-zoom markup, variants, categories and related-product rendering; `PublicContactTest` covers form validation, normalization and idempotent CRM capture.
-- Focused Catalog/Search/Public Website suites pass 25 tests/177 assertions; Contact passes 3 tests/23 assertions. Full regression passes 192 tests/1,433 assertions with four intentional environment-specific skips. PHPStan level 8, Pint and the production Vite build pass.
+- Focused Catalog/Media/Public/SEO regression passes 31 tests/269 assertions. Full regression passes 194 tests/1,484 assertions with four intentional environment-specific skips. PHPStan level 8, Pint and the production Vite build pass.
 
 ## Remaining before Step 29 can be `DONE`
 
 - Final browser-assisted mobile/desktop, keyboard/accessibility, deep-zoom interaction and query-count evidence.
 
-The live `kaiyo` database was seeded idempotently with the review catalog and migration `2026_08_29_000021` was applied on 2026-08-29. This is review data, not a substitute for the final approved product import workflow.
+The live `kaiyo` database was seeded idempotently with the review catalog; migrations through `2026_08_29_000022` were applied by 2026-08-30. This is review data, not a substitute for the final approved product import workflow.

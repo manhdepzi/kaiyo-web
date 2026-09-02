@@ -10,10 +10,13 @@ use App\Modules\Checkout\Contracts\TaxCalculationPort;
 use App\Modules\Checkout\Infrastructure\UnavailableTaxCalculation;
 use App\Modules\CRM\Infrastructure\Authorization\DatabaseScopeTargetVerifier;
 use App\Modules\Foundation\Domain\Events\DispatchFactReleased;
+use App\Modules\Growth\Application\Listeners\QueueMerchantRefreshFromFact;
 use App\Modules\Growth\Contracts\AnalyticsDestination;
 use App\Modules\Growth\Contracts\MerchantDestination;
+use App\Modules\Growth\Contracts\MerchantProjectionDestination;
 use App\Modules\Growth\Infrastructure\DisabledAnalyticsDestination;
 use App\Modules\Growth\Infrastructure\DisabledMerchantDestination;
+use App\Modules\Growth\Infrastructure\DisabledMerchantProjectionDestination;
 use App\Modules\Identity\Contracts\PermissionAuthorizer;
 use App\Modules\Identity\Contracts\ScopeTargetVerifier;
 use App\Modules\Identity\Contracts\StaffAccountClassifier;
@@ -23,6 +26,7 @@ use App\Modules\Identity\Infrastructure\Persistence\Models\UserAccount;
 use App\Modules\Identity\Support\AuthenticationEventRecorder;
 use App\Modules\Media\Contracts\MalwareScanner;
 use App\Modules\Media\Infrastructure\HeuristicMalwareScanner;
+use App\Modules\Notification\Application\Listeners\CreateCustomerWorkflowNotification;
 use App\Modules\Notification\Application\Listeners\CreateOrderStateNotification;
 use App\Modules\Order\Contracts\PaymentCancellationPort;
 use App\Modules\Payment\Application\Listeners\ConfirmOrderFromVerifiedPayment;
@@ -59,6 +63,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(SearchAdapter::class, DatabaseSearchAdapter::class);
         $this->app->bind(MalwareScanner::class, HeuristicMalwareScanner::class);
         $this->app->bind(MerchantDestination::class, DisabledMerchantDestination::class);
+        $this->app->bind(MerchantProjectionDestination::class, DisabledMerchantProjectionDestination::class);
         $this->app->bind(AnalyticsDestination::class, DisabledAnalyticsDestination::class);
         $this->app->bind(PaymentPreparationPort::class, PaymentLifecycleService::class);
         $this->app->bind(PaymentRegistrationPort::class, PaymentLifecycleService::class);
@@ -83,7 +88,9 @@ class AppServiceProvider extends ServiceProvider
             }
         });
         Event::listen(DispatchFactReleased::class, ConfirmOrderFromVerifiedPayment::class);
+        Event::listen(DispatchFactReleased::class, CreateCustomerWorkflowNotification::class);
         Event::listen(DispatchFactReleased::class, CreateOrderStateNotification::class);
+        Event::listen(DispatchFactReleased::class, QueueMerchantRefreshFromFact::class);
 
         Event::listen(Verified::class, function (Verified $event): void {
             if (! $event->user instanceof UserAccount || $event->user->status !== 'pending') {

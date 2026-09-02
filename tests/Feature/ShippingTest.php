@@ -15,6 +15,8 @@ use App\Modules\Checkout\Application\Data\TaxPreparation;
 use App\Modules\Checkout\Contracts\TaxCalculationPort;
 use App\Modules\Checkout\Infrastructure\Persistence\Models\Order;
 use App\Modules\CRM\Infrastructure\Persistence\Models\Customer;
+use App\Modules\Foundation\Application\PublishDispatchRecord;
+use App\Modules\Foundation\Infrastructure\Persistence\Models\DispatchRecord;
 use App\Modules\Identity\Authorization\AuthorizationScope;
 use App\Modules\Identity\Infrastructure\Persistence\Models\PermissionDefinition;
 use App\Modules\Identity\Infrastructure\Persistence\Models\ScopedGrant;
@@ -82,6 +84,14 @@ final class ShippingTest extends TestCase
                 ->where('aggregate_public_id', $shipment->public_id)->orderBy('id')->pluck('payload')
                 ->map(fn (string $payload): string => (string) json_decode($payload, true, 512, JSON_THROW_ON_ERROR)['to_state'])->all(),
         );
+        $dispatchedFact = DispatchRecord::query()->where('event_type', 'shipping.shipment.state.changed')
+            ->where('aggregate_public_id', $shipment->public_id)
+            ->whereJsonContains('payload->to_state', 'dispatched')->firstOrFail();
+        app(PublishDispatchRecord::class)->publish($dispatchedFact);
+        app(PublishDispatchRecord::class)->publish($dispatchedFact);
+        self::assertSame(1, DB::table('notifications')->where('shipment_id', $shipment->getKey())
+            ->where('order_id', $order->getKey())->where('template_key', 'shipment.dispatched')->count());
+        self::assertSame(1, DB::table('notification_attempts')->whereIn('notification_id', DB::table('notifications')->where('shipment_id', $shipment->getKey())->select('id'))->count());
     }
 
     public function test_carrier_timeout_becomes_visible_unknown_without_blocking_or_duplicate_booking(): void

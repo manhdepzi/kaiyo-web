@@ -126,6 +126,38 @@
     50% { transform: scale(1.035) translateY(-0.35rem); }
 }
 
+@keyframes kaiyo-reveal-up {
+    from { opacity: 0; transform: translateY(0.5rem); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes kaiyo-gallery-enter {
+    from { opacity: 0; transform: scale(0.985); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.product-gallery-slide-enter {
+    animation: kaiyo-gallery-enter 260ms ease-out both;
+}
+
+.staff-reveal {
+    animation: kaiyo-reveal-up 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.staff-reveal-delay-1 { animation-delay: 70ms; }
+.staff-reveal-delay-2 { animation-delay: 140ms; }
+.staff-reveal-delay-3 { animation-delay: 210ms; }
+
+#main-content > section {
+    animation: kaiyo-reveal-up 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+#main-content article,
+#main-content [data-product-card] {
+    transition-property: transform, box-shadow, border-color;
+    transition-duration: 220ms;
+}
+
 .product-media-motion {
     animation: product-media-breathe 5.5s ease-in-out infinite;
     transform-origin: center;

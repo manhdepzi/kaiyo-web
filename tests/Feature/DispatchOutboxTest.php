@@ -48,6 +48,28 @@ final class DispatchOutboxTest extends TestCase
         ));
     }
 
+    public function test_catalog_rejects_unknown_versions_aggregates_and_unapproved_payload_fields(): void
+    {
+        $valid = $this->fact('order-contract');
+        $invalid = [
+            new DispatchFact($valid->identity, 'commerce.unknown', 1, 'order', 'order-contract', $valid->payload),
+            new DispatchFact($valid->identity, $valid->type, 2, 'order', 'order-contract', $valid->payload),
+            new DispatchFact($valid->identity, $valid->type, 1, 'customer', 'order-contract', $valid->payload),
+            new DispatchFact($valid->identity, $valid->type, 1, 'order', 'order-contract', [...$valid->payload, 'email' => 'customer@example.test']),
+            new DispatchFact($valid->identity, $valid->type, 1, 'order', 'different-order', $valid->payload),
+            new DispatchFact($valid->identity, $valid->type, 1, 'order', 'order-contract', [...$valid->payload, 'source' => 'controller']),
+        ];
+
+        foreach ($invalid as $fact) {
+            try {
+                app(StoreDispatchFact::class)->record($fact);
+                self::fail('Invalid dispatch contract must fail before persistence.');
+            } catch (DomainException) {
+                self::assertSame(0, DB::table('dispatch_records')->count());
+            }
+        }
+    }
+
     public function test_relay_publishes_committed_fact_once_and_persists_evidence(): void
     {
         Event::fake([DispatchFactReleased::class]);
@@ -169,6 +191,53 @@ final class DispatchOutboxTest extends TestCase
     {
         self::assertSame(2, Artisan::call('outbox:status', ['--max-pending-age' => '-1']));
         self::assertSame(0, DB::table('dispatch_records')->count());
+    }
+
+    public function test_retention_status_is_read_only_payload_safe_and_fail_closed_without_legal_policy(): void
+    {
+        app(StoreDispatchFact::class)->record($this->fact('retention-old-public-id'));
+        app(StoreDispatchFact::class)->record($this->fact('retention-recent-public-id'));
+        app(StoreDispatchFact::class)->record($this->fact('retention-pending-public-id'));
+        DB::table('dispatch_records')->where('aggregate_public_id', 'retention-old-public-id')->update([
+            'state' => 'published',
+            'published_at' => now()->subDays(31),
+        ]);
+        DB::table('dispatch_records')->where('aggregate_public_id', 'retention-recent-public-id')->update([
+            'state' => 'published',
+            'published_at' => now()->subDays(29),
+        ]);
+        /** @var array<string, mixed> $policies */
+        $policies = config('outbox.retention_days');
+        $policies['commerce.order.placed'] = 30;
+        config()->set('outbox.retention_days', $policies);
+
+        self::assertSame(0, Artisan::call('outbox:retention-status', ['--json' => true]));
+        $output = trim(Artisan::output());
+        self::assertStringNotContainsString('retention-old-public-id', $output);
+        self::assertStringNotContainsString('reservation-retention-old-public-id', $output);
+        /** @var array{policy_complete:bool,non_terminal_count:int,facts:list<array{event_type:string,retention_days:?int,published_count:int,eligible_count:int}>} $status */
+        $status = json_decode($output, true, flags: JSON_THROW_ON_ERROR);
+        self::assertFalse($status['policy_complete']);
+        self::assertSame(1, $status['non_terminal_count']);
+        $orderPolicy = collect($status['facts'])->firstWhere('event_type', 'commerce.order.placed');
+        self::assertSame(30, $orderPolicy['retention_days']);
+        self::assertSame(2, $orderPolicy['published_count']);
+        self::assertSame(1, $orderPolicy['eligible_count']);
+        self::assertSame(1, Artisan::call('outbox:retention-status', ['--require-complete-policy' => true]));
+        self::assertSame(3, DB::table('dispatch_records')->count());
+    }
+
+    public function test_retention_status_rejects_invalid_policy_without_mutation(): void
+    {
+        app(StoreDispatchFact::class)->record($this->fact('retention-invalid-policy'));
+        /** @var array<string, mixed> $policies */
+        $policies = config('outbox.retention_days');
+        $policies['payment.verified'] = 0;
+        config()->set('outbox.retention_days', $policies);
+
+        self::assertSame(2, Artisan::call('outbox:retention-status', ['--json' => true]));
+        self::assertStringContainsString('positive integer', Artisan::output());
+        self::assertSame(1, DB::table('dispatch_records')->count());
     }
 
     public function test_concurrency_probe_refuses_non_isolated_database_without_mutation(): void

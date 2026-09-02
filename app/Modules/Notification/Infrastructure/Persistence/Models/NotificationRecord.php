@@ -10,11 +10,13 @@ use Illuminate\Support\Str;
 /**
  * @property string $public_id
  * @property int $customer_id
- * @property int $order_id
+ * @property int|null $order_id
+ * @property int|null $quote_id
+ * @property int|null $shipment_id
  * @property string $channel
  * @property string $template_key
  * @property string $business_fact_public_id
- * @property array{from_state: string, order_public_id: string, order_version: int, to_state: string} $attributes
+ * @property array<string, int|string> $attributes
  * @property string $state
  */
 final class NotificationRecord extends Model

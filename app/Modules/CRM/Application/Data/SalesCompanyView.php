@@ -6,7 +6,10 @@ namespace App\Modules\CRM\Application\Data;
 
 final readonly class SalesCompanyView
 {
-    /** @param list<array{account_public_id:string,email:string,status:string,starts_at:string,ends_at:?string}> $members */
+    /**
+     * @param  list<array{account_public_id:string,email:string,status:string,starts_at:string,ends_at:?string,capabilities:list<string>}>  $members
+     * @param  list<array{code:string,module:string}>  $delegableCapabilities
+     */
     public function __construct(
         public string $publicId,
         public string $legalName,
@@ -16,5 +19,6 @@ final readonly class SalesCompanyView
         public int $version,
         public array $members,
         public bool $canManageMembers,
+        public array $delegableCapabilities,
     ) {}
 }

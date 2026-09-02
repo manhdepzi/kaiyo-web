@@ -16,6 +16,13 @@ trait AuthorizesOrder
     private function authorizeOrder(PermissionAuthorizer $authorizer, UserAccount $actor, Order $order, string $permission): void
     {
         $customer = Customer::query()->findOrFail($order->customer_id);
+        if ($permission === 'orders.cancel_request'
+            && $actor->isActive()
+            && $actor->email_verified_at !== null
+            && $customer->status === 'active'
+            && $customer->user_account_id === $actor->getKey()) {
+            return;
+        }
         $scope = AuthorizationScope::customer('orders', (int) $customer->getKey(), $customer->user_account_id === null ? null : (int) $customer->user_account_id);
         if (! $authorizer->allows($actor, $permission, $scope)) {
             throw new AuthorizationException('The actor cannot perform this Order operation.');

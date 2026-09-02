@@ -2,7 +2,7 @@
 
 - Status: `IN PROGRESS — LANDING/BROWSER/PRODUCTION GATES`
 - Started: 2026-08-25
-- Boundary: only public facts are emitted; price, stock, ratings and other structured-data values are never inferred.
+- Boundary: only public facts are emitted; price, stock, ratings and other structured-data values are never inferred. Rating facts require approved moderated reviews.
 
 ## Implemented
 
@@ -19,11 +19,13 @@
 - [x] Category/Brand pagination emits stable self-canonical and prev/next navigation; empty overflow pages are noindex.
 - [x] Product SSR emits bounded title/description, large image-preview policy, Open Graph/Twitter metadata and one semantic H1.
 - [x] Product JSON-LD now includes published images, active Variant SKU and approved presentation properties; Product breadcrumb emits a canonical `BreadcrumbList`.
+- [x] Admin-managed bounded Product title/description override the deterministic fallback; Breadcrumb JSON-LD is decoded in regression tests so Blade directive collisions cannot corrupt structured data.
+- [x] Product `AggregateRating` is omitted while no approved review exists and is calculated only from the moderated, verified-purchase public review projection.
 
 ## Verification evidence
 
-- Technical SEO focused: 5 passed / 51 assertions.
-- Full regression: 182 passed / 1268 assertions with four documented MySQL-only trigger skips; PHPStan level 8, Pint and production asset build pass.
+- Technical SEO plus Admin Product integration: 7 passed / 93 assertions.
+- Full regression: 201 passed / 1,589 assertions with four documented environment-specific skips; PHPStan level 8, Pint and production asset build pass.
 
 ## Remaining
 
@@ -31,4 +33,4 @@
 - Browser-assisted rendered HTML, canonical/indexation and redirect crawl checks.
 - Production-host sitemap/robots verification and final Core Web Vitals evidence.
 
-No migration was executed against the live `kaiyo` database in this task.
+Migration `2026_08_29_000022` was applied to the live `kaiyo` database on 2026-08-30 for the bounded Product SEO fields; it does not add inferred SEO facts.

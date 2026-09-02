@@ -91,6 +91,7 @@ final class PublicQuotationController extends Controller
                 abuseKey: $guestToken === null ? null : hash('sha256', (string) $request->ip()."\0".(string) $request->userAgent()),
                 paymentMethod: 'bank_transfer',
                 invoiceRequested: (bool) ($validated['invoice_requested'] ?? false),
+                analyticsConsentPublicId: $this->analyticsConsent($request),
             ));
             if ($guestToken === null) {
                 if (! $account instanceof UserAccount) {
@@ -209,5 +210,12 @@ final class PublicQuotationController extends Controller
     private function optional(mixed $value): ?string
     {
         return is_string($value) && trim($value) !== '' ? trim($value) : null;
+    }
+
+    private function analyticsConsent(Request $request): ?string
+    {
+        $value = $request->cookie((string) config('analytics.consent_cookie'));
+
+        return is_string($value) && preg_match('/\A[0-9A-HJKMNP-TV-Z]{26}\z/', $value) === 1 ? $value : null;
     }
 }

@@ -42,6 +42,9 @@
                     <a class="flex items-center gap-3 rounded-control px-3 py-2 hover:bg-surface-muted" href="{{ route('public.contact') }}"><x-heroicon-o-phone class="size-5" aria-hidden="true" />Liên hệ</a>
                     <a class="flex items-center gap-3 rounded-control px-3 py-2 hover:bg-surface-muted" href="{{ route('public.cart') }}"><x-heroicon-o-shopping-cart class="size-5" aria-hidden="true" />Giỏ hàng</a>
                     <a class="flex items-center gap-3 rounded-control px-3 py-2 text-brand hover:bg-brand-soft" href="{{ auth()->check() ? route('account') : route('login') }}"><x-heroicon-o-user-circle class="size-5" aria-hidden="true" />{{ auth()->check() ? 'Tài khoản' : 'Đăng nhập' }}</a>
+                    @guest
+                        <a class="flex items-center gap-3 rounded-control px-3 py-2 text-brand hover:bg-brand-soft" href="{{ route('register') }}"><x-heroicon-o-user-plus class="size-5" aria-hidden="true" />Đăng ký</a>
+                    @endguest
                 </nav>
             </details>
         </div>

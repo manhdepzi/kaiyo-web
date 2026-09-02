@@ -6,8 +6,11 @@ namespace Tests\Feature;
 
 use App\Modules\Cart\Application\CartService;
 use App\Modules\Checkout\Infrastructure\Persistence\Models\Order;
+use App\Modules\CRM\Application\Queries\AccountPortalReader;
 use App\Modules\CRM\Application\Services\CrmPartyService;
+use App\Modules\CRM\Infrastructure\Persistence\Models\Company;
 use App\Modules\CRM\Infrastructure\Persistence\Models\Customer;
+use App\Modules\Identity\Infrastructure\Persistence\Models\PermissionDefinition;
 use App\Modules\Identity\Infrastructure\Persistence\Models\UserAccount;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -88,6 +91,99 @@ final class AccountPortalTest extends TestCase
         $this->actingAs($account)->get('/account')->assertRedirect(route('verification.notice'));
     }
 
+    public function test_company_membership_discloses_only_current_explicit_capabilities(): void
+    {
+        $account = UserAccount::factory()->create(['status' => 'active', 'email_verified_at' => now()]);
+        $grantor = UserAccount::factory()->create(['status' => 'active', 'email_verified_at' => now()]);
+        Customer::query()->create([
+            'user_account_id' => $account->getKey(), 'display_name' => 'Company Member',
+            'name_normalized' => 'company member', 'status' => 'active',
+        ]);
+        $company = Company::query()->create([
+            'legal_name' => 'Kaiyo Portal Company', 'display_name' => 'Kaiyo Portal Company',
+            'name_normalized' => 'kaiyo portal company', 'status' => 'active',
+        ]);
+        $membershipId = DB::table('company_memberships')->insertGetId([
+            'company_id' => $company->getKey(), 'user_account_id' => $account->getKey(), 'status' => 'active',
+            'starts_at' => now()->subDay(), 'ends_at' => now()->addDay(),
+            'identity_hash' => hash('sha256', 'portal-company-membership', true),
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $permission = PermissionDefinition::query()->where('code', 'orders.read')->firstOrFail();
+        DB::table('company_member_capabilities')->insert([
+            'company_membership_id' => $membershipId, 'permission_definition_id' => $permission->getKey(),
+            'granted_by_user_account_id' => $grantor->getKey(),
+            'identity_hash' => hash('sha256', 'portal-company-capability', true),
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        $this->actingAs($account)->get(route('account'))->assertOk()
+            ->assertSee('Kaiyo Portal Company')->assertSee('orders.read')
+            ->assertDontSee('Membership chưa được cấp capability thương mại.');
+        DB::table('company_member_capabilities')->where('company_membership_id', $membershipId)->update(['revoked_at' => now()]);
+        $this->get(route('account'))->assertOk()->assertDontSee('orders.read')
+            ->assertSee('Membership chưa được cấp capability thương mại.');
+    }
+
+    public function test_portal_projection_has_a_bounded_query_count_with_multiple_company_memberships(): void
+    {
+        $account = UserAccount::factory()->create(['status' => 'active', 'email_verified_at' => now()]);
+        $grantor = UserAccount::factory()->create(['status' => 'active', 'email_verified_at' => now()]);
+        Customer::query()->create([
+            'user_account_id' => $account->getKey(), 'display_name' => 'Bounded Portal',
+            'name_normalized' => 'bounded portal', 'status' => 'active',
+        ]);
+        $permission = PermissionDefinition::query()->where('code', 'orders.read')->firstOrFail();
+        foreach (range(1, 5) as $index) {
+            $company = Company::query()->create([
+                'legal_name' => "Portal Company {$index}", 'display_name' => "Portal Company {$index}",
+                'name_normalized' => "portal company {$index}", 'status' => 'active',
+            ]);
+            $membershipId = DB::table('company_memberships')->insertGetId([
+                'company_id' => $company->getKey(), 'user_account_id' => $account->getKey(), 'status' => 'active',
+                'starts_at' => now()->subDay(), 'ends_at' => now()->addDay(),
+                'identity_hash' => hash('sha256', "bounded-membership-{$index}", true),
+                'created_at' => now(), 'updated_at' => now(),
+            ]);
+            DB::table('company_member_capabilities')->insert([
+                'company_membership_id' => $membershipId, 'permission_definition_id' => $permission->getKey(),
+                'granted_by_user_account_id' => $grantor->getKey(),
+                'identity_hash' => hash('sha256', "bounded-capability-{$index}", true),
+                'created_at' => now(), 'updated_at' => now(),
+            ]);
+        }
+
+        $queryCount = 0;
+        DB::listen(static function () use (&$queryCount): void {
+            $queryCount++;
+        });
+        $portal = app(AccountPortalReader::class)->read($account);
+
+        self::assertCount(5, $portal->companies);
+        self::assertSame(10, $queryCount, 'Portal projection query count must not grow with memberships.');
+    }
+
+    public function test_portal_ssr_keeps_private_and_accessible_section_contracts(): void
+    {
+        $account = UserAccount::factory()->create(['status' => 'active', 'email_verified_at' => now()]);
+        Customer::query()->create([
+            'user_account_id' => $account->getKey(), 'display_name' => 'Accessible Portal',
+            'name_normalized' => 'accessible portal', 'status' => 'active',
+        ]);
+
+        $this->actingAs($account)->get(route('account'))
+            ->assertOk()
+            ->assertHeader('Cache-Control', 'no-store, private')
+            ->assertHeader('X-Robots-Tag', 'noindex, nofollow')
+            ->assertSee('href="#main-content"', false)
+            ->assertSee('aria-labelledby="wishlist-heading"', false)
+            ->assertSee('aria-labelledby="own-reviews-heading"', false)
+            ->assertSee('aria-labelledby="notifications-heading"', false)
+            ->assertSee('aria-labelledby="companies-heading"', false)
+            ->assertSee('name="email"', false)
+            ->assertSee('name="sms"', false);
+    }
+
     public function test_order_detail_exposes_only_owned_commerce_state(): void
     {
         $owner = UserAccount::factory()->create(['status' => 'active', 'email_verified_at' => now()]);
@@ -127,7 +223,20 @@ final class AccountPortalTest extends TestCase
         ]);
 
         $this->actingAs($owner)->get(route('account.orders.show', $order->public_id))
-            ->assertOk()->assertSee($order->public_id)->assertSee('130.000 ₫')->assertSee('pending');
+            ->assertOk()->assertSee($order->public_id)->assertSee('130.000 ₫')->assertSee('pending')
+            ->assertSee('Gửi yêu cầu hủy');
+        $requestKey = (string) Str::ulid();
+        $this->post(route('account.orders.cancellation.store', $order->public_id), [
+            'request_key' => $requestKey,
+            'reason' => 'Không còn nhu cầu nhận đơn hàng này.',
+        ])->assertRedirect(route('account.orders.show', $order->public_id))->assertSessionHasNoErrors();
+        $this->post(route('account.orders.cancellation.store', $order->public_id), [
+            'request_key' => $requestKey,
+            'reason' => 'Không còn nhu cầu nhận đơn hàng này.',
+        ])->assertRedirect(route('account.orders.show', $order->public_id))->assertSessionHasNoErrors();
+        self::assertSame(1, DB::table('cancellation_requests')->count());
+        self::assertSame('requested', DB::table('cancellation_requests')->value('state'));
+        $this->get(route('account.orders.show', $order->public_id))->assertOk()->assertSee('Đang chờ xử lý');
         $this->actingAs($owner)->get(route('account'))
             ->assertOk()->assertSee('Đơn hàng đã được xác nhận')->assertSee($order->public_id);
         $notificationPublicId = (string) DB::table('notifications')->value('public_id');
@@ -139,5 +248,9 @@ final class AccountPortalTest extends TestCase
             ->assertOk()->assertDontSee('Đơn hàng đã được xác nhận')->assertDontSee($order->public_id);
         $this->patch(route('account.notifications.read', $notificationPublicId))->assertNotFound();
         $this->actingAs($other)->get(route('account.orders.show', $order->public_id))->assertNotFound();
+        $this->post(route('account.orders.cancellation.store', $order->public_id), [
+            'request_key' => (string) Str::ulid(),
+            'reason' => 'Cố gắng hủy đơn hàng của tài khoản khác.',
+        ])->assertNotFound();
     }
 }

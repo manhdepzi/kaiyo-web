@@ -8,6 +8,17 @@
     $seoTitle = $product->seoTitle ?: \Illuminate\Support\Str::limit($product->name.' | '.$product->category->name, 58, '').' | Kaiyo';
     $primaryImage = $product->images[0] ?? null;
     $mediaCount = count($product->images) + ($productVideo === null ? 0 : 1);
+    $schemaContextKey = chr(64).'context';
+    $schemaTypeKey = chr(64).'type';
+    $breadcrumbSchema = [
+        $schemaContextKey => 'https://schema.org',
+        $schemaTypeKey => 'BreadcrumbList',
+        'itemListElement' => [
+            [$schemaTypeKey => 'ListItem', 'position' => 1, 'name' => 'Trang chủ', 'item' => route('home')],
+            [$schemaTypeKey => 'ListItem', 'position' => 2, 'name' => $product->category->name, 'item' => route('public.category', $product->category->slug)],
+            [$schemaTypeKey => 'ListItem', 'position' => 3, 'name' => $product->name, 'item' => $canonicalUrl],
+        ],
+    ];
 @endphp
 
 @section('title', $seoTitle)
@@ -28,15 +39,7 @@
 <meta name="twitter:description" content="{{ $metaDescription }}">
 @if($primaryImage)<meta name="twitter:image" content="{{ $primaryImage->url }}">@endif
 <script type="application/ld+json">{!! json_encode($productSchema, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_THROW_ON_ERROR) !!}</script>
-<script type="application/ld+json">{!! json_encode([
-    '@context' => 'https://schema.org',
-    '@type' => 'BreadcrumbList',
-    'itemListElement' => [
-        ['@type' => 'ListItem', 'position' => 1, 'name' => 'Trang chủ', 'item' => route('home')],
-        ['@type' => 'ListItem', 'position' => 2, 'name' => $product->category->name, 'item' => route('public.category', $product->category->slug)],
-        ['@type' => 'ListItem', 'position' => 3, 'name' => $product->name, 'item' => $canonicalUrl],
-    ],
-], JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_THROW_ON_ERROR) !!}</script>
+<script type="application/ld+json">{!! json_encode($breadcrumbSchema, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_THROW_ON_ERROR) !!}</script>
 @endpush
 
 @section('content')
@@ -77,12 +80,12 @@
                         <div class="order-1 sm:order-2">
                             <div data-deep-zoom class="product-deep-zoom relative aspect-square overflow-hidden rounded-[0.875rem] bg-white" aria-label="Rê chuột trên ảnh để phóng to vừa phải">
                                 @foreach ($product->images as $image)
-                                    <figure data-gallery-slide @if(!$loop->first) hidden @endif aria-hidden="{{ $loop->first ? 'false' : 'true' }}" class="absolute inset-0">
+                                    <figure data-gallery-slide @if(!$loop->first) hidden @endif aria-hidden="{{ $loop->first ? 'false' : 'true' }}" class="product-gallery-slide-enter absolute inset-0">
                                         <img data-zoom-image src="{{ $image->url }}" alt="{{ $image->alt }} – ảnh sản phẩm {{ $loop->iteration }}" width="{{ $image->width }}" height="{{ $image->height }}" @if($loop->first) fetchpriority="high" @else loading="lazy" @endif decoding="async" class="h-full w-full object-contain p-4 sm:p-7">
                                     </figure>
                                 @endforeach
                                 @if($productVideo !== null)
-                                    <figure data-gallery-slide hidden aria-hidden="true" class="absolute inset-0 grid place-items-center bg-ink">
+                                    <figure data-gallery-slide hidden aria-hidden="true" class="product-gallery-slide-enter absolute inset-0 grid place-items-center bg-ink">
                                         <video controls playsinline preload="metadata" @if($primaryImage) poster="{{ $primaryImage->url }}" @endif class="h-full w-full object-contain" aria-label="{{ $productVideo['title'] }}">
                                             <source src="{{ $productVideo['url'] }}" type="{{ $productVideo['mime'] }}">
                                             Trình duyệt của bạn chưa hỗ trợ phát video HTML5.
@@ -112,6 +115,18 @@
             </div>
             <h1 id="product-title" class="mt-3 text-2xl font-bold leading-tight tracking-tight sm:text-3xl">{{ $product->name }}</h1>
             <p class="mt-3 text-sm font-medium text-ink-muted">Danh mục: <a class="text-brand hover:underline" href="{{ route('public.category', $product->category->slug) }}">{{ $product->category->name }}</a></p>
+            @error('wishlist')<x-ui.alert class="mt-4" tone="warning">{{ $message }}</x-ui.alert>@enderror
+            <div class="mt-4">
+                @auth
+                    @if($isWishlisted)
+                        <form method="POST" action="{{ route('account.wishlist.destroy', $product->publicId) }}">@csrf @method('DELETE')<x-ui.button type="submit" variant="secondary" size="sm" icon="heart">Đã lưu · Bỏ yêu thích</x-ui.button></form>
+                    @else
+                        <form method="POST" action="{{ route('account.wishlist.store', $product->publicId) }}">@csrf<x-ui.button type="submit" variant="secondary" size="sm" icon="heart">Lưu sản phẩm yêu thích</x-ui.button></form>
+                    @endif
+                @else
+                    <x-ui.button :href="route('login')" variant="secondary" size="sm" icon="heart">Đăng nhập để lưu sản phẩm</x-ui.button>
+                @endauth
+            </div>
             @if ($product->description)<p class="mt-4 whitespace-pre-line text-[0.9375rem] leading-7 text-ink-muted">{{ $product->description }}</p>@endif
 
             <div class="mt-5 grid grid-cols-2 gap-2 border-y border-line py-4 text-sm">
@@ -131,7 +146,7 @@
                         @foreach ($product->variants as $variant)
                             <label data-variant-option class="group relative cursor-pointer">
                                 <input class="peer sr-only" type="radio" name="product_variant_preview" value="{{ $variant->publicId }}" data-sku="{{ $variant->sku }}" data-name="{{ $variant->name }}" @checked($loop->first)>
-                                <span class="flex min-h-16 items-center gap-3 rounded-xl border-2 border-line bg-surface px-4 py-3 transition group-hover:border-brand peer-checked:border-brand peer-checked:bg-brand-soft peer-focus-visible:ring-4 peer-focus-visible:ring-focus/30">
+                                <span class="flex min-h-16 items-center gap-3 rounded-xl border-2 border-line bg-surface px-4 py-3 transition duration-200 group-hover:-translate-y-0.5 group-hover:border-brand group-hover:shadow-sm peer-checked:border-brand peer-checked:bg-brand-soft peer-focus-visible:ring-4 peer-focus-visible:ring-focus/30">
                                     <span data-variant-check class="grid size-8 shrink-0 place-items-center rounded-full border border-line bg-white text-brand"><x-heroicon-o-check class="size-4 opacity-0 transition" aria-hidden="true" /></span>
                                     <span class="min-w-0 flex-1"><span class="block font-semibold">{{ $variant->name }}</span><span class="mt-0.5 block truncate text-xs text-ink-muted">SKU: {{ $variant->sku }}</span></span>
                                 </span>
@@ -195,6 +210,7 @@
     <nav class="mt-12 flex gap-2 overflow-x-auto border-b border-line" aria-label="Nội dung sản phẩm">
         <a href="#mo-ta" class="shrink-0 border-b-2 border-brand px-4 py-3 text-sm font-bold text-brand">Mô tả</a>
         <a href="#thong-so" class="shrink-0 border-b-2 border-transparent px-4 py-3 text-sm font-semibold hover:border-line hover:text-brand">Thông số kỹ thuật</a>
+        <a href="#danh-gia" class="shrink-0 border-b-2 border-transparent px-4 py-3 text-sm font-semibold hover:border-line hover:text-brand">Đánh giá ({{ count($productReviews) }})</a>
         <a href="#bao-gia" class="shrink-0 border-b-2 border-transparent px-4 py-3 text-sm font-semibold hover:border-line hover:text-brand">Tư vấn & báo giá</a>
     </nav>
 
@@ -235,6 +251,36 @@
         </aside>
     </div>
 
+    <section id="danh-gia" class="mt-12 scroll-mt-24 border-t border-line pt-10" aria-labelledby="reviews-title">
+        <div class="flex flex-wrap items-end justify-between gap-3"><div><p class="text-sm font-bold uppercase tracking-[0.16em] text-brand">Mua hàng đã xác minh</p><h2 id="reviews-title" class="mt-2 text-2xl font-bold">Đánh giá sản phẩm</h2></div><x-ui.badge tone="info">{{ count($productReviews) }} đánh giá đã duyệt</x-ui.badge></div>
+        @error('review')<x-ui.alert class="mt-5" tone="warning">{{ $message }}</x-ui.alert>@enderror
+        @auth
+            @if($ownReview === null || $ownReview['status'] !== 'approved')
+                <x-ui.card class="mt-6" title="{{ $ownReview === null ? 'Viết đánh giá' : 'Cập nhật đánh giá đang '.$ownReview['status'] }}" description="Chỉ đơn đã giao/hoàn tất chứa sản phẩm này mới đủ điều kiện. Nội dung cần được duyệt trước khi công khai.">
+                    <form method="POST" action="{{ route('account.reviews.store', $product->publicId) }}" class="grid gap-4 sm:grid-cols-2">
+                        @csrf
+                        @if($ownReview)<input type="hidden" name="expected_version" value="{{ $ownReview['version'] }}">@endif
+                        <div><label for="review-rating" class="block text-sm font-medium">Số sao</label><select id="review-rating" name="rating" class="mt-2 min-h-11 w-full rounded-control border border-line bg-surface px-3" required>@foreach(range(5, 1) as $rating)<option value="{{ $rating }}" @selected((int)old('rating', $ownReview['rating'] ?? 5) === $rating)>{{ $rating }} sao</option>@endforeach</select></div>
+                        <x-ui.input id="review-title" name="title" label="Tiêu đề" :value="old('title', $ownReview['title'] ?? '')" required />
+                        <div class="sm:col-span-2"><label for="review-body" class="block text-sm font-medium">Nội dung</label><textarea id="review-body" name="body" minlength="20" maxlength="5000" rows="5" class="mt-2 w-full rounded-control border border-line bg-surface p-3" required>{{ old('body', $ownReview['body'] ?? '') }}</textarea></div>
+                        <div class="sm:col-span-2"><x-ui.button type="submit" icon="star">Gửi đánh giá</x-ui.button></div>
+                    </form>
+                </x-ui.card>
+            @else
+                <x-ui.alert class="mt-5" tone="success" title="Đánh giá của bạn đã được công bố">Đánh giá đã duyệt được khóa để bảo toàn bằng chứng kiểm duyệt.</x-ui.alert>
+            @endif
+        @else
+            <div class="mt-5"><x-ui.button :href="route('login')" variant="secondary" icon="star">Đăng nhập để đánh giá</x-ui.button></div>
+        @endauth
+        <div class="mt-6 grid gap-4 md:grid-cols-2">
+            @forelse($productReviews as $review)
+                <article class="rounded-panel border border-line bg-surface p-5"><p class="font-bold text-warning">{{ str_repeat('★', $review['rating']) }}<span class="sr-only">{{ $review['rating'] }} trên 5 sao</span></p><h3 class="mt-2 font-bold">{{ $review['title'] }}</h3><p class="mt-2 whitespace-pre-line text-sm leading-6 text-ink-muted">{{ $review['body'] }}</p><p class="mt-4 text-xs text-ink-muted">{{ $review['customer'] }} · Mua hàng đã xác minh</p></article>
+            @empty
+                <x-ui.empty-state title="Chưa có đánh giá đã duyệt" description="Đánh giá từ khách mua hàng đã xác minh sẽ xuất hiện sau kiểm duyệt." />
+            @endforelse
+        </div>
+    </section>
+
     @if(count($relatedProducts) > 0)
         <section class="mt-16 border-t border-line pt-12" aria-labelledby="related-products-title">
             <div class="flex items-end justify-between gap-4">
@@ -243,7 +289,7 @@
             </div>
             <div class="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
                 @foreach($relatedProducts as $related)
-                    <article class="group overflow-hidden rounded-panel border border-line bg-surface transition hover:-translate-y-1 hover:shadow-panel">
+                    <article class="group overflow-hidden rounded-panel border border-line bg-surface transition duration-300 hover:-translate-y-1 hover:shadow-panel">
                         <a href="{{ route('public.product', $related->slug) }}" class="block aspect-square overflow-hidden bg-white p-5">
                             @if(isset($related->images[0]))<img src="{{ $related->images[0]->url }}" alt="{{ $related->images[0]->alt }}" width="{{ $related->images[0]->width }}" height="{{ $related->images[0]->height }}" loading="lazy" decoding="async" class="h-full w-full object-contain transition duration-500 group-hover:scale-110">@endif
                         </a>

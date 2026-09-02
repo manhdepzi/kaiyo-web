@@ -35,6 +35,31 @@
                 <x-ui.button type="submit" icon="check">Lưu thay đổi</x-ui.button>
             </form>
         </x-ui.card>
+        @include('account._addresses')
+        <section class="mt-8" aria-labelledby="wishlist-heading">
+            <div class="flex flex-wrap items-end justify-between gap-3"><div><h2 id="wishlist-heading" class="text-xl font-bold">Sản phẩm yêu thích</h2><p class="mt-1 text-sm text-ink-muted">Danh sách sản phẩm đang công bố mà bạn muốn xem lại.</p></div><x-ui.badge tone="info">{{ count($portal->wishlist) }}/100 sản phẩm</x-ui.badge></div>
+            <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                @forelse($portal->wishlist as $item)
+                    <article class="rounded-panel border border-line bg-surface p-5">
+                        <p class="text-xs font-semibold uppercase tracking-wide text-brand">{{ $item['category'] }}</p>
+                        <h3 class="mt-2 font-bold"><a class="hover:text-brand" href="{{ route('public.product', $item['slug']) }}">{{ $item['name'] }}</a></h3>
+                        <div class="mt-4 flex flex-wrap gap-2"><x-ui.button :href="route('public.product', $item['slug'])" variant="ghost" size="sm" icon="eye">Xem sản phẩm</x-ui.button><form method="POST" action="{{ route('account.wishlist.destroy', $item['public_id']) }}">@csrf @method('DELETE')<x-ui.button type="submit" variant="secondary" size="sm" icon="trash">Bỏ lưu</x-ui.button></form></div>
+                    </article>
+                @empty
+                    <x-ui.empty-state title="Chưa có sản phẩm yêu thích" description="Bạn có thể lưu sản phẩm ngay tại trang chi tiết để quay lại nhanh hơn." />
+                @endforelse
+            </div>
+        </section>
+        <section class="mt-8" aria-labelledby="own-reviews-heading">
+            <h2 id="own-reviews-heading" class="text-xl font-bold">Đánh giá của bạn</h2><p class="mt-1 text-sm text-ink-muted">Theo dõi trạng thái kiểm duyệt của đánh giá mua hàng đã xác minh.</p>
+            <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                @forelse($portal->reviews as $review)
+                    <article class="rounded-panel border border-line bg-surface p-5"><div class="flex items-start justify-between gap-3"><p class="font-bold text-warning">{{ $review['rating'] }}/5 ★</p><x-ui.badge :tone="$review['status'] === 'approved' ? 'success' : ($review['status'] === 'rejected' ? 'danger' : 'warning')">{{ $review['status'] }}</x-ui.badge></div><h3 class="mt-2 font-bold">{{ $review['title'] }}</h3><p class="mt-1 text-sm text-ink-muted">{{ $review['product_name'] }}</p><x-ui.button :href="route('public.product', $review['product_slug'])" class="mt-3" variant="ghost" size="sm" icon="eye">Xem sản phẩm</x-ui.button></article>
+                @empty
+                    <x-ui.empty-state title="Chưa có đánh giá" description="Sau khi đơn được giao, bạn có thể đánh giá sản phẩm tại trang chi tiết." />
+                @endforelse
+            </div>
+        </section>
         <div class="mt-8 grid gap-8 lg:grid-cols-2">
             <section aria-labelledby="orders-heading"><h2 id="orders-heading" class="text-xl font-bold">Đơn hàng gần đây</h2><div class="mt-4 space-y-3">
                 @forelse ($portal->orders as $order)<a href="{{ route('account.orders.show', $order['public_id']) }}" class="block rounded-panel border border-line bg-surface p-4 hover:border-brand"><span class="font-semibold">{{ $order['public_id'] }}</span><span class="mt-1 block text-sm text-ink-muted">{{ $order['state'] }} · {{ number_format($order['final_amount'], 0, ',', '.') }} ₫</span></a>@empty <x-ui.empty-state title="Chưa có đơn hàng" description="Đơn hàng đã đặt sẽ xuất hiện tại đây." /> @endforelse
@@ -62,8 +87,30 @@
                 @endforelse
             </div>
         </section>
+        <x-ui.card class="mt-8" title="Tùy chọn thông báo đơn hàng" description="Thông báo trong ứng dụng luôn bật. Email/SMS chỉ được gửi khi kênh nhà cung cấp tương ứng đã được cấu hình và vận hành.">
+            <form method="POST" action="{{ route('account.notification-preferences.update') }}" class="grid gap-4 sm:grid-cols-3 sm:items-end">
+                @csrf @method('PATCH')
+                <input type="hidden" name="expected_version" value="{{ $portal->notificationPreferences['version'] }}">
+                <label class="flex min-h-12 items-center gap-3 rounded-control border border-line bg-surface-muted px-4"><input type="checkbox" checked disabled class="size-4"><span><strong class="block">Trong ứng dụng</strong><small class="text-ink-muted">Thông báo giao dịch bắt buộc</small></span></label>
+                <label class="flex min-h-12 items-center gap-3 rounded-control border border-line px-4"><input type="checkbox" name="email" value="1" class="size-4" @checked($portal->notificationPreferences['email'])><span><strong class="block">Email</strong><small class="text-ink-muted">Khi provider được bật</small></span></label>
+                <label class="flex min-h-12 items-center gap-3 rounded-control border border-line px-4"><input type="checkbox" name="sms" value="1" class="size-4" @checked($portal->notificationPreferences['sms'])><span><strong class="block">SMS</strong><small class="text-ink-muted">Cần số điện thoại hồ sơ</small></span></label>
+                @error('preferences')<p class="text-sm text-danger sm:col-span-3">{{ $message }}</p>@enderror
+                <div class="sm:col-span-3"><x-ui.button type="submit" icon="bell">Lưu tùy chọn</x-ui.button></div>
+            </form>
+        </x-ui.card>
         <section class="mt-8" aria-labelledby="companies-heading"><h2 id="companies-heading" class="text-xl font-bold">Công ty</h2><div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            @forelse ($portal->companies as $company)<x-ui.card :title="$company['display_name']"><p class="text-sm text-ink-muted">Thành viên đang hoạt động</p></x-ui.card>@empty <p class="text-sm text-ink-muted">Chưa có quan hệ công ty đang hoạt động.</p> @endforelse
+            @forelse ($portal->companies as $company)
+                <x-ui.card :title="$company['display_name']">
+                    <p class="text-sm text-ink-muted">Thành viên đang hoạt động</p>
+                    @if($company['capabilities'] !== [])
+                        <ul class="mt-3 flex flex-wrap gap-2" aria-label="Quyền trong công ty">
+                            @foreach($company['capabilities'] as $capability)<li><x-ui.badge tone="info">{{ $capability }}</x-ui.badge></li>@endforeach
+                        </ul>
+                    @else
+                        <p class="mt-3 text-sm text-warning">Membership chưa được cấp capability thương mại.</p>
+                    @endif
+                </x-ui.card>
+            @empty <p class="text-sm text-ink-muted">Chưa có quan hệ công ty đang hoạt động.</p> @endforelse
         </div></section>
     @endif
 </section>

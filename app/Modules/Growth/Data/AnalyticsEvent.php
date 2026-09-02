@@ -17,6 +17,7 @@ final readonly class AnalyticsEvent
         public DateTimeImmutable $occurredAt,
         public bool $consentGranted,
         public array $attributes = [],
+        public ?string $consentEvidencePublicId = null,
     ) {}
 
     /** @return array<string, mixed> */
@@ -28,6 +29,7 @@ final readonly class AnalyticsEvent
             'subject_public_id' => $this->subjectPublicId,
             'occurred_at' => $this->occurredAt->format(DATE_ATOM),
             'attributes' => $this->attributes,
+            'consent_evidence_public_id' => $this->consentEvidencePublicId,
         ];
     }
 }

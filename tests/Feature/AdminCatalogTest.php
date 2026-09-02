@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use App\Modules\Catalog\Infrastructure\Persistence\Models\Category;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\Product;
 use App\Modules\Identity\Authorization\AuthorizationScope;
 use App\Modules\Identity\Infrastructure\Persistence\Models\PermissionDefinition;
@@ -27,7 +28,7 @@ final class AdminCatalogTest extends TestCase
     public function test_catalog_admin_requires_permission_and_manages_complete_public_product_detail(): void
     {
         $unauthorized = UserAccount::factory()->create();
-        $this->actingAs($unauthorized)->get(route('admin.catalog'))->assertRedirect();
+        $this->actingAs($unauthorized)->get(route('admin.catalog'))->assertForbidden();
 
         $manager = UserAccount::factory()->create([
             'two_factor_secret' => encrypt('catalog-secret'), 'two_factor_recovery_codes' => encrypt('[]'),
@@ -39,7 +40,7 @@ final class AdminCatalogTest extends TestCase
         $this->actingAs($manager)->post(route('admin.catalog.categories.store'), [
             'name' => 'Van điều khiển', 'slug' => 'van-dieu-khien', 'sort_order' => 10,
         ])->assertRedirect(route('admin.catalog'));
-        $category = \App\Modules\Catalog\Infrastructure\Persistence\Models\Category::query()->where('slug', 'van-dieu-khien')->firstOrFail();
+        $category = Category::query()->where('slug', 'van-dieu-khien')->firstOrFail();
 
         $this->actingAs($manager)->post(route('admin.catalog.products.store'), [
             'name' => 'Van gió kiểm thử', 'slug' => 'van-gio-kiem-thu', 'category_public_id' => $category->public_id,
@@ -73,7 +74,7 @@ final class AdminCatalogTest extends TestCase
             ->assertSee('Van gió kiểm thử')->assertSee('video-mau.mp4')->assertSee('Vật liệu');
         $public = $this->get(route('public.product', $product->slug))->assertOk()
             ->assertSee('Nội dung kỹ thuật chi tiết do quản trị viên nhập.')
-            ->assertSee('Tôn mạ kẽm')->assertSee('video-mau.mp4', false)
+            ->assertSee('Tôn mạ kẽm')->assertSee('<video', false)
             ->assertSee('<title>Van gió kiểm thử | Kaiyo</title>', false);
         self::assertStringContainsString('/media/', $public->getContent());
         $this->assertDatabaseCount('catalog_media_references', 2);

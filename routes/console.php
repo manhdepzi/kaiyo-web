@@ -17,3 +17,13 @@ Schedule::command('outbox:relay')
     ->everyMinute()
     ->withoutOverlapping()
     ->onOneServer();
+
+Schedule::command('merchant:process-refreshes')
+    ->everyMinute()
+    ->withoutOverlapping()
+    ->onOneServer();
+
+Schedule::command('analytics:process-intents')
+    ->everyMinute()
+    ->withoutOverlapping()
+    ->onOneServer();

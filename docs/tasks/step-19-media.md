@@ -19,6 +19,7 @@ Implement object-storage-neutral media assets, quarantine-first upload validatio
 ## Evidence
 
 - Migration `2026_08_23_000007` adds governed Media assets/variants, five MySQL CHECK constraints, Catalog reference FK/uniqueness and two scoped Media permissions.
+- Migration `2026_08_29_000022` extends the Catalog media-purpose constraint with `video`; Admin uploads remain quarantine-first, MIME-checked and permission-gated, while public delivery only serves active, clean, public assets.
 - `MediaService` uses generated quarantine/final keys, `fileinfo` content detection, MIME/extension agreement, configured byte limits and a replaceable `MalwareScanner` port. Rejected scans retain metadata evidence and publish no object.
 - GD generates bounded WebP `thumb`/`large` variants; storage is selected by configuration and no provider SDK appears in domain code.
 - Five Media tests/20 assertions cover safe image promotion, variant generation, mismatch/polyglot rejection, scanner fail-closed behavior, permission-gated temporary private URLs, reference protection and idempotent orphan cleanup.

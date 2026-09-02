@@ -25,6 +25,9 @@ Logical references crossing a domain boundary are shown for cardinality/traceabi
 ```mermaid
 erDiagram
     USER_ACCOUNT ||--o| CUSTOMER : may_have_profile
+    CUSTOMER ||--o{ CUSTOMER_ADDRESS : maintains
+    CUSTOMER ||--o{ CUSTOMER_WISHLIST_ITEM : saves
+    PRODUCT ||--o{ CUSTOMER_WISHLIST_ITEM : saved_as
     USER_ACCOUNT ||--o{ COMPANY_MEMBERSHIP : joins
     COMPANY ||--o{ COMPANY_MEMBERSHIP : has
     COMPANY ||--o{ CONTACT : has
@@ -51,7 +54,7 @@ erDiagram
 | Role Bundle | Role Permission | Many permissions per bundle; bundle is configuration, not authorization truth by label | Effective permission derives from active scoped grant plus current policy revision |
 | Scoped Grant | Scope/delegation/revocation evidence | One grant links account, bundle/capability and an approved resource scope | Cannot delegate authority not held; high-impact grant dual control |
 | Break-glass Authorization | Approval/use/review evidence | One immutable authorization with distinct requester/approver and maximum 60-minute lifetime | Never permanent and never bypasses business validation |
-| Customer | Contacts, ownership references, duplicate/privacy evidence | Optional one-to-one login profile; may exist for Sales-created CRM record without login | Owns individual customer truth, not Company membership or order history |
+| Customer | Addresses, Wishlist items, Contacts, ownership references, duplicate/privacy evidence | Optional one-to-one login profile; may exist for Sales-created CRM record without login | Owns mutable address/preference truth; Checkout copies submitted values to immutable Order snapshots; not Company membership or order history |
 | Company | Memberships, Contacts, ownership references | Many active members/contacts | Membership alone grants no company capability |
 | Lead | Attribution and conversion linkage | Converts at most once to confirmed Customer and/or Company | Conversion transaction-safe/idempotent; no duplicate commercial party |
 | Duplicate Review | Candidate links and review decision | References exact/fuzzy evidence and selected target/source | Fuzzy match never auto-merges; commerce history never rewritten |
@@ -73,6 +76,9 @@ erDiagram
     MEDIA_ASSET ||--o{ CATALOG_MEDIA_REFERENCE : referenced_by
     MEDIA_ASSET ||--o{ MEDIA_VARIANT : derives
     PRODUCT ||--o{ SLUG_REDIRECT : redirects
+    CUSTOMER ||--o{ PRODUCT_REVIEW : authors
+    PRODUCT ||--o{ PRODUCT_REVIEW : receives
+    ORDER ||--o{ PRODUCT_REVIEW : verifies_purchase
     PRICE_CONFIGURATION ||--|{ PRICE_RULE : contains
     PROMOTION ||--|{ PROMOTION_ELIGIBILITY : constrains
     PROMOTION ||--o{ PROMOTION_REDEMPTION : consumed_by
@@ -85,6 +91,7 @@ erDiagram
 | Category | Parent relation and slug lineage | Hierarchical; a product has one approved primary category and may have additional classification only if Step 07 explicitly models it | No cyclic hierarchy |
 | Brand | Brand identity/slug | One Brand to many Products | Slug change creates redirect evidence |
 | Product | Variants, catalog attribute values, catalog media references, status/slug lineage | One Product has at least one Variant; SKU belongs to Variant | Product/Variant sellability explicit; SKU/slug unique contracts Step 07 |
+| Product Review | Purchase and moderation evidence | At most one review per Customer + Product; references one Delivered/Completed Order containing that Product | Pending/rejected are private; approved content is Customer-immutable and alone contributes to public rating facts |
 | Attribute Definition | Product/Variant values | Definition reused; value belongs to exactly one Product or Variant logical owner | Avoid arbitrary product JSON as sole searchable/specification truth |
 | Media Asset | Media Variants, quarantine/scan/access evidence | Referenced through approved usage identity; content stored in object storage | MySQL metadata/authorization remains truth; no public-by-default files |
 | Price Configuration | Price Rules and effective revision | One activated revision per non-ambiguous scope/time | D-001 precedence, one winner/layer and immutable historical snapshots |
@@ -199,6 +206,7 @@ erDiagram
     EMAIL_TEMPLATE ||--|{ EMAIL_TEMPLATE_REVISION : versions
     NOTIFICATION ||--o{ NOTIFICATION_ATTEMPT : delivered_by
     EMAIL_TEMPLATE_REVISION ||--o{ NOTIFICATION : renders
+    CUSTOMER ||--o| NOTIFICATION_PREFERENCE : configures
     MERCHANT_FEED_BATCH ||--|{ MERCHANT_FEED_ITEM_RESULT : contains
     ANALYTICS_DELIVERY_BATCH ||--|{ ANALYTICS_DELIVERY_ITEM : contains
     SEARCH_PROJECTION_CHECKPOINT ||--o{ SEARCH_PROJECTION_FAILURE : tracks
@@ -211,6 +219,7 @@ erDiagram
 | Page / Article / FAQ / Banner | Type-specific revision plus publication schedule/media references | Scheduled transition idempotent; published revision immutable/auditable |
 | Email Template | Immutable published template revisions and allowed variables | Escaped/validated rendering; no executable business logic |
 | Notification | Attempts/provider outcomes | Business transition succeeds independently; retry/dead-letter observable |
+| Notification Preference | One optional versioned record per Customer | Records channel consent/configuration only; never implies provider availability or successful delivery |
 | Search Projection Checkpoint | Rebuild/failure evidence only | Projection entirely rebuildable from owning sources; ≤5 minute freshness target |
 | Merchant Feed Batch | Item outcomes/retries | Price/availability drawn from authoritative verified source at build time; partial failure resumable |
 | Analytics Delivery Batch | Deduplicated item outcomes | Analytics is not a GA clone or business truth; consent/privacy policy enforced |

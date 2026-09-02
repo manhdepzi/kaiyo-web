@@ -46,7 +46,7 @@ final class InventoryTest extends TestCase
         self::assertNotNull($fact);
         self::assertSame($variant->public_id, $fact->aggregate_public_id);
         self::assertSame('variant', $fact->aggregate_type);
-        self::assertSame([
+        self::assertEquals([
             'balance_version' => 1,
             'change_type' => 'adjusted',
             'warehouse_public_id' => $warehouse->public_id,

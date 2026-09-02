@@ -72,7 +72,7 @@ final class CreateOrderStateNotification
                 || $notification->order_id !== $order->getKey()
                 || $notification->template_key !== 'order.'.$toState
                 || $notification->business_fact_public_id !== $event->recordPublicId
-                || $notification->attributes !== $attributes) {
+                || ! $this->hasSameAttributes($notification->attributes, $attributes)) {
                 throw new DomainException('Notification identity was reused with conflicting content.');
             }
 
@@ -86,5 +86,16 @@ final class CreateOrderStateNotification
                 ]);
             }
         }, 3);
+    }
+
+    /** @param array<string, int|string> $stored
+     * @param  array<string, int|string>  $expected
+     */
+    private function hasSameAttributes(array $stored, array $expected): bool
+    {
+        ksort($stored);
+        ksort($expected);
+
+        return $stored === $expected;
     }
 }

@@ -11,22 +11,11 @@ use Illuminate\Support\Str;
 
 final class StoreDispatchFact
 {
-    /** @var array<string, int> */
-    private const CATALOG = [
-        'catalog.projection.changed' => 1,
-        'commerce.order.placed' => 1,
-        'commerce.order.state.changed' => 1,
-        'inventory.availability.changed' => 1,
-        'payment.verified' => 1,
-        'quotation.revision.state.changed' => 1,
-        'shipping.shipment.state.changed' => 1,
-    ];
+    public function __construct(private readonly DispatchFactCatalog $catalog) {}
 
     public function record(DispatchFact $fact): void
     {
-        if ((self::CATALOG[$fact->type] ?? null) !== $fact->version) {
-            throw new DomainException('Dispatch fact type or version is not approved.');
-        }
+        $this->catalog->validate($fact);
         if (! preg_match('/\A[a-z][a-z0-9._-]{2,99}\z/', $fact->type)
             || ! preg_match('/\A[a-z][a-z0-9._-]{1,49}\z/', $fact->aggregateType)
             || $fact->identity === '' || strlen($fact->identity) > 200

@@ -144,7 +144,7 @@ final class OrderLifecycleTest extends TestCase
             ->where('event_type', 'commerce.order.state.changed')
             ->where('aggregate_public_id', $order->public_id)
             ->sole();
-        self::assertSame(
+        self::assertEquals(
             ['from_state' => 'pending', 'order_version' => 1, 'to_state' => 'cancelled'],
             json_decode((string) $fact->payload, true, 512, JSON_THROW_ON_ERROR),
         );

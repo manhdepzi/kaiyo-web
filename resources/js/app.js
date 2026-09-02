@@ -61,6 +61,11 @@ document.querySelectorAll('[data-product-gallery]').forEach((gallery) => {
             const selected = slideIndex === active;
             slide.hidden = !selected;
             slide.setAttribute('aria-hidden', selected ? 'false' : 'true');
+            if (selected) {
+                slide.classList.remove('product-gallery-slide-enter');
+                void slide.offsetWidth;
+                slide.classList.add('product-gallery-slide-enter');
+            }
             if (!selected) slide.querySelector('video')?.pause();
         });
         thumbs.forEach((thumb, thumbIndex) => thumb.setAttribute('aria-current', thumbIndex === active ? 'true' : 'false'));

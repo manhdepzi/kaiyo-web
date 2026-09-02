@@ -7,6 +7,15 @@
     @section('robots', 'noindex,follow')
 @endif
 @push('head')
+    @php
+        $schemaContextKey = chr(64).'context';
+        $schemaTypeKey = chr(64).'type';
+        $listingItems = array_map(static fn ($hit, $index): array => [$schemaTypeKey => 'ListItem', 'position' => $index + 1, 'url' => route('public.product', $hit->slug), 'name' => $hit->productName], $result->hits, array_keys($result->hits));
+        $listingBreadcrumb = [$schemaContextKey => 'https://schema.org', $schemaTypeKey => 'BreadcrumbList', 'itemListElement' => [[$schemaTypeKey => 'ListItem', 'position' => 1, 'name' => 'Trang chủ', 'item' => route('home')], [$schemaTypeKey => 'ListItem', 'position' => 2, 'name' => $heading, 'item' => route($routeName, ['slug' => $routeSlug])]]];
+        $listingItemList = [$schemaContextKey => 'https://schema.org', $schemaTypeKey => 'ItemList', 'itemListElement' => $listingItems];
+    @endphp
+    <script type="application/ld+json">{!! json_encode($listingBreadcrumb, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_THROW_ON_ERROR) !!}</script>
+    <script type="application/ld+json">{!! json_encode($listingItemList, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_THROW_ON_ERROR) !!}</script>
     @if ($result->page > 1)<link rel="prev" href="{{ route($routeName, array_filter(['slug' => $routeSlug, 'page' => $result->page - 1 > 1 ? $result->page - 1 : null])) }}">@endif
     @if ($result->hasMore)<link rel="next" href="{{ route($routeName, ['slug' => $routeSlug, 'page' => $result->page + 1]) }}">@endif
 @endpush

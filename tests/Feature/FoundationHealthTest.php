@@ -17,6 +17,10 @@ final class FoundationHealthTest extends TestCase
         $this->get('/up')
             ->assertOk()
             ->assertHeader(AssignCorrelationId::HEADER)
+            ->assertHeader('X-Content-Type-Options', 'nosniff')
+            ->assertHeader('X-Frame-Options', 'SAMEORIGIN')
+            ->assertHeader('Referrer-Policy', 'strict-origin-when-cross-origin')
+            ->assertHeader('Permissions-Policy', 'camera=(), geolocation=(), microphone=()')
             ->assertSee('Application up');
     }
 

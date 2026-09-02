@@ -18,6 +18,7 @@
             <nav class="flex flex-wrap items-center gap-2" aria-label="Điều hướng quản trị">
                 @if($adminNavigation['catalog'] ?? false)<x-ui.button :href="route('admin.catalog')" variant="secondary" size="sm" icon="squares-2x2">Sản phẩm</x-ui.button>@endif
                 @if($adminNavigation['content'] ?? false)<x-ui.button :href="route('admin.content')" variant="secondary" size="sm" icon="document-text">Nội dung</x-ui.button>@endif
+                @if($adminNavigation['content'] ?? false)<x-ui.button :href="route('admin.reviews')" variant="secondary" size="sm" icon="star">Đánh giá</x-ui.button>@endif
                 @if($adminNavigation['merchant'] ?? false)<x-ui.button :href="route('admin.merchant')" variant="secondary" size="sm" icon="shopping-bag">Merchant</x-ui.button>@endif
                 @if($adminNavigation['analytics'] ?? false)<x-ui.button :href="route('admin.analytics')" variant="secondary" size="sm" icon="chart-bar-square">Analytics</x-ui.button>@endif
                 @if($adminNavigation['outbox'] ?? false)<x-ui.button :href="route('admin.outbox')" variant="secondary" size="sm" icon="queue-list">Outbox</x-ui.button>@endif

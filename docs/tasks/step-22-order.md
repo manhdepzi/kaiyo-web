@@ -12,6 +12,7 @@ Implement ORD-L1 as an expected-version, evidence-bound and idempotent state mac
 - [x] Only approved forward transitions are accepted; payment state never becomes an Order state.
 - [x] Duplicate/stale/out-of-order evidence cannot duplicate or reverse a transition.
 - [x] Cancellation is request-then-decision, only from Pending/Confirmed, and never self-decided.
+- [x] Verified Customer owners can submit their own request through the Portal; staff decisions require explicit `orders.cancel_decide`, confirmed 2FA and a separate actor.
 - [x] Approved cancellation atomically releases active Inventory and persists Payment compensation preparation.
 - [x] History and decision evidence are immutable and permission scoped.
 - [x] Every accepted forward/cancellation state change persists a minimal versioned fact atomically and an exact retry cannot duplicate it.

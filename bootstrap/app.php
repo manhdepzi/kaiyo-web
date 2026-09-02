@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\AddPrivateResponseHeaders;
+use App\Http\Middleware\AddSecurityResponseHeaders;
 use App\Http\Middleware\AssignCorrelationId;
 use App\Http\Middleware\EnsureAccountCanAccess;
 use App\Http\Middleware\EnsureStaffTwoFactorEnabled;
@@ -24,6 +25,7 @@ return Application::configure(basePath: dirname(__DIR__))
         __DIR__.'/../app/Console/Commands',
     ])
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->append(AddSecurityResponseHeaders::class);
         $middleware->append(AssignCorrelationId::class);
         $middleware->replace(TrustProxies::class, TrustConfiguredProxies::class);
         $middleware->web(append: [

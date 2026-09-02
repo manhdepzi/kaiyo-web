@@ -15,5 +15,6 @@ final readonly class PublicContactCommand
         public string $message,
         public string $operationKey,
         public string $abuseKey,
+        public ?string $analyticsConsentPublicId = null,
     ) {}
 }

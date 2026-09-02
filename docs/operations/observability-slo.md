@@ -61,6 +61,8 @@ Numerical alert thresholds beyond approved SLO budgets remain deploy-time config
 - The local `kaiyo` schema applied migrations `000001`–`000018`; home, search and readiness HTTP smoke checks pass.
 - `php artisan schedule:list` confirms the CMS publication and outbox relay jobs are registered every minute while Redis is healthy.
 - `php artisan outbox:status --json` reports bounded state counts and oldest ages without payload/error details; alert exit codes activate only with deployment-supplied age/dead-record gates.
+- `php artisan operations:health --json` combines sanitized configured dependency readiness with bounded Outbox and Merchant/Analytics counts/ages. Default execution is observational; `--require-ready`, age options and `--fail-on-dead` are explicit deployment-owned gates. It is included in the MySQL/Redis CI gate without age thresholds.
+- If an Outbox or Growth status query is unavailable, `operations:health` returns one generic unavailable violation and a non-zero exit without exposing the underlying connection/provider error.
 - Disposable schema `kaiyo_step48_verify_20260827` ran all 18 migrations and the two-process outbox probe: workers split 6/6 and all 12 facts reached `published` with exactly one attempt. The exact disposable schema was then dropped; live `kaiyo` retained all 18 migrations and an empty healthy outbox.
 
 Dashboards, actionable alerts, synthetic failure and alert-fire evidence remain pending provider binding/executable system.

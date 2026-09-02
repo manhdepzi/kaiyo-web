@@ -21,6 +21,8 @@ use App\Modules\Checkout\Infrastructure\Persistence\Models\OrderLine;
 use App\Modules\CRM\Infrastructure\Persistence\Models\Customer;
 use App\Modules\Foundation\Application\StoreDispatchFact;
 use App\Modules\Foundation\Data\DispatchFact;
+use App\Modules\Growth\Application\StoreAnalyticsIntent;
+use App\Modules\Growth\Data\AnalyticsEvent;
 use App\Modules\Inventory\Application\Services\InventoryAllocator;
 use App\Modules\Inventory\Application\Services\InventoryReservationService;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\InventoryReservation;
@@ -46,6 +48,7 @@ final readonly class PlaceCheckoutOrder
         private PaymentRegistrationPort $paymentRegistration,
         private ShippingRegistrationPort $shippingRegistration,
         private StoreDispatchFact $dispatchFacts,
+        private StoreAnalyticsIntent $analytics,
     ) {}
 
     public function execute(CheckoutCommand $command): CheckoutResult
@@ -159,6 +162,16 @@ final readonly class PlaceCheckoutOrder
                     'order',
                     $order->public_id,
                     ['order_public_id' => $order->public_id, 'reservation_public_id' => $reservation->public_id, 'source' => 'checkout'],
+                ));
+                $this->analytics->record('order-placed:'.$order->public_id, new AnalyticsEvent(
+                    'order-placed:'.$order->public_id,
+                    'order.placed',
+                    'order',
+                    $order->public_id,
+                    now()->toDateTimeImmutable(),
+                    true,
+                    ['currency' => $order->currency, 'source' => 'checkout', 'value_minor' => $order->final_amount],
+                    $command->analyticsConsentPublicId,
                 ));
 
                 return new CheckoutResult($order->refresh()->load(['lines', 'addresses']), $reservation->load('items'));

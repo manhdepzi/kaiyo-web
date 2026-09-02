@@ -17,6 +17,7 @@ final readonly class CheckoutCommand
         public string $shippingMethod,
         public string $paymentMethod,
         public bool $invoiceRequested = false,
+        public ?string $analyticsConsentPublicId = null,
     ) {
         if (trim($operationKey) === '' || strlen($operationKey) > 100) {
             throw new DomainException('A bounded checkout idempotency key is required.');

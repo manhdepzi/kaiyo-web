@@ -37,6 +37,17 @@ final class FoundationBoundaryTest extends TestCase
             '2026_08_28_000019_add_presentation_to_banner_revisions.php',
             '2026_08_28_000020_create_notifications_tables.php',
             '2026_08_29_000021_create_public_contact_submissions.php',
+            '2026_08_29_000022_extend_catalog_product_content.php',
+            '2026_08_30_000023_create_customer_addresses.php',
+            '2026_08_30_000024_create_customer_wishlist_items.php',
+            '2026_08_30_000025_create_product_reviews.php',
+            '2026_08_30_000026_create_notification_preferences.php',
+            '2026_08_31_000027_extend_notifications_for_workflow_subjects.php',
+            '2026_08_31_000028_create_merchant_feed_refresh_requests.php',
+            '2026_08_31_000029_add_merchant_refresh_processing_evidence.php',
+            '2026_08_31_000030_create_analytics_consent_attribution_tables.php',
+            '2026_08_31_000031_add_analytics_consent_revocation.php',
+            '2026_08_31_000032_create_analytics_event_intents.php',
         ], $migrationNames);
 
         $composer = json_decode(

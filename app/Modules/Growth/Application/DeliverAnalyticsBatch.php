@@ -17,6 +17,7 @@ final readonly class DeliverAnalyticsBatch
     public function __construct(
         private AnalyticsDestination $destination,
         private AnalyticsEventPolicy $policy,
+        private ResolveAnalyticsConsentAttribution $consent,
     ) {}
 
     /** @param list<AnalyticsEvent> $events */
@@ -31,6 +32,9 @@ final readonly class DeliverAnalyticsBatch
             if (preg_match('/\A[a-zA-Z0-9][a-zA-Z0-9._:-]{0,99}\z/', $value) !== 1) {
                 throw new DomainException('Analytics delivery configuration is invalid.');
             }
+        }
+        if ($consentRevision !== (string) config('analytics.consent_policy_revision')) {
+            throw new DomainException('Analytics consent policy revision is not current.');
         }
         if (mb_strlen($operationKey, 'UTF-8') < 8 || mb_strlen($operationKey, 'UTF-8') > 200 || count($events) > 1000) {
             throw new DomainException('Analytics batch identity or size is invalid.');
@@ -87,27 +91,40 @@ final readonly class DeliverAnalyticsBatch
 
     private function deliverEvent(AnalyticsDeliveryBatch $batch, AnalyticsEvent $event): void
     {
+        $resolved = $this->consent->execute($event->consentEvidencePublicId, $batch->consent_revision);
+        $effectiveConsent = $event->consentGranted && $resolved->granted;
+        $deliveryEvent = new AnalyticsEvent(
+            $event->identity,
+            $event->type,
+            $event->subjectType,
+            $event->subjectPublicId,
+            $event->occurredAt,
+            $effectiveConsent,
+            [...$event->attributes, ...$resolved->attribution],
+            $event->consentEvidencePublicId,
+        );
         $identityHash = hash('sha256', $event->identity, true);
-        $payloadHash = hash('sha256', json_encode($event->payload(), JSON_THROW_ON_ERROR), true);
+        $this->policy->validate($deliveryEvent);
+        $payloadHash = hash('sha256', json_encode($deliveryEvent->payload(), JSON_THROW_ON_ERROR), true);
         $existing = DB::table('analytics_delivery_items')->where('destination_code', $batch->destination_code)
             ->where('event_identity_hash', $identityHash)->first();
         if ($existing !== null && ((int) $existing->analytics_delivery_batch_id !== $batch->getKey()
             || in_array($existing->outcome, ['succeeded', 'suppressed'], true))) {
             return;
         }
-        if (! $event->consentGranted) {
-            $this->storeItem($batch, $event, $identityHash, $payloadHash, 'suppressed', null, 'consent_denied', false);
+        if (! $effectiveConsent) {
+            $this->storeItem($batch, $deliveryEvent, $identityHash, $payloadHash, 'suppressed', null, 'consent_denied', false);
 
             return;
         }
         try {
-            $result = $this->destination->publish($event, hash('sha256', $batch->destination_code.'|'.$event->identity));
+            $result = $this->destination->publish($deliveryEvent, hash('sha256', $batch->destination_code.'|'.$event->identity));
             if (($result->succeeded && $result->reference === null) || (! $result->succeeded && $result->errorCode === null)) {
                 throw new DomainException('Analytics destination returned an invalid outcome.');
             }
             $this->storeItem(
                 $batch,
-                $event,
+                $deliveryEvent,
                 $identityHash,
                 $payloadHash,
                 $result->succeeded ? 'succeeded' : 'failed',
@@ -116,7 +133,7 @@ final readonly class DeliverAnalyticsBatch
                 true,
             );
         } catch (Throwable) {
-            $this->storeItem($batch, $event, $identityHash, $payloadHash, 'failed', null, 'destination_failure', true);
+            $this->storeItem($batch, $deliveryEvent, $identityHash, $payloadHash, 'failed', null, 'destination_failure', true);
         }
     }
 

@@ -66,6 +66,9 @@ final class CheckoutTest extends TestCase
             'aggregate_public_id' => $result->order->public_id,
             'state' => 'pending',
         ]);
+        self::assertDatabaseHas('analytics_event_intents', [
+            'event_type' => 'order.placed', 'subject_public_id' => $result->order->public_id, 'state' => 'pending',
+        ]);
     }
 
     public function test_repeated_submit_returns_one_order_and_payload_reuse_is_rejected(): void
@@ -84,6 +87,7 @@ final class CheckoutTest extends TestCase
         self::assertSame(1, DB::table('checkout_operations')->count());
         self::assertSame(1, DB::table('dispatch_records')->where('event_type', 'commerce.order.placed')->count());
         self::assertSame(1, DB::table('dispatch_records')->where('event_type', 'inventory.availability.changed')->count());
+        self::assertSame(1, DB::table('analytics_event_intents')->where('event_type', 'order.placed')->count());
 
         $this->expectException(DomainException::class);
         app(PlaceCheckoutOrder::class)->execute(new CheckoutCommand(

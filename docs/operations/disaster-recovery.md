@@ -51,3 +51,11 @@ Recovery Commander and production operators are named only when D-007 accounts/o
 - private object authorization/usage remains intact.
 
 Step 54 becomes `DONE` only after provider-specific backup evidence and a successful timed restore/reconciliation report meet RPO/RTO.
+
+## Read-only configuration/evidence status
+
+`php artisan dr:status --json` reports only booleans for backup/PITR/object/config-metadata control bindings, the approved RPO/RTO targets and optional achieved drill values. It does not report provider names, accounts, paths, backup identifiers or credentials, and it never starts a backup, restore, failover or deletion.
+
+`php artisan dr:status --require-restore-evidence` fails closed until every binding is configured, a valid timed-restore evidence timestamp exists and achieved RPO/RTO are within the approved targets. This is a configuration/evidence gate only: the underlying evidence must still be an approved, integrity-checked restore report.
+
+The protected release preflight (`php artisan release:preflight --json`) uses the same evidence policy together with runtime, delivery and security gates. It is strictly read-only; it is not substitute evidence for a provider-backed restore drill and does not make Step 54 or a production launch complete.

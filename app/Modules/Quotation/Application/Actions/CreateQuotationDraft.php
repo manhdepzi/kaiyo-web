@@ -7,6 +7,8 @@ namespace App\Modules\Quotation\Application\Actions;
 use App\Modules\CRM\Application\Services\CompanyCapabilityAuthorizer;
 use App\Modules\CRM\Infrastructure\Persistence\Models\Company;
 use App\Modules\CRM\Infrastructure\Persistence\Models\Customer;
+use App\Modules\Growth\Application\StoreAnalyticsIntent;
+use App\Modules\Growth\Data\AnalyticsEvent;
 use App\Modules\Identity\Authorization\AuthorizationScope;
 use App\Modules\Identity\Contracts\PermissionAuthorizer;
 use App\Modules\Quotation\Application\Data\CreateQuotationCommand;
@@ -27,6 +29,7 @@ final readonly class CreateQuotationDraft
         private QuotationAbuseGuard $abuse,
         private CompanyCapabilityAuthorizer $companyCapabilities,
         private QuotationRevisionBuilder $revisions,
+        private StoreAnalyticsIntent $analytics,
     ) {}
 
     public function execute(CreateQuotationCommand $command): QuotationDraftResult
@@ -83,6 +86,16 @@ final readonly class CreateQuotationDraft
                     'operation_key' => $command->operationKey, 'request_hash' => $hash, 'quote_revision_id' => $revision->getKey(),
                     'action' => 'create', 'result_state' => 'draft', 'result_version' => 0, 'created_at' => now(),
                 ]);
+                $this->analytics->record('quotation-requested:'.$quote->public_id, new AnalyticsEvent(
+                    'quotation-requested:'.$quote->public_id,
+                    'quotation.requested',
+                    'quote',
+                    $quote->public_id,
+                    now()->toDateTimeImmutable(),
+                    true,
+                    ['line_count' => count($command->lines), 'source' => $command->guestAccessToken === null ? 'account' : 'guest'],
+                    $command->analyticsConsentPublicId,
+                ));
 
                 return new QuotationDraftResult($quote->refresh(), $revision->load('lines'));
             }, 3);

@@ -46,6 +46,7 @@ final class PublicContactTest extends TestCase
 
         $this->assertDatabaseCount('leads', 1);
         $this->assertDatabaseCount('public_contact_submissions', 1);
+        $this->assertDatabaseCount('analytics_event_intents', 1);
         $this->assertDatabaseHas('leads', [
             'source' => 'public_contact',
             'display_name' => 'Nguyễn Văn An',
@@ -57,6 +58,9 @@ final class PublicContactTest extends TestCase
         $this->assertDatabaseHas('public_contact_submissions', [
             'topic' => 'project',
             'message' => 'Tôi cần trao đổi cấu hình ống gió cho một dự án mới.',
+        ]);
+        $this->assertDatabaseHas('analytics_event_intents', [
+            'event_type' => 'crm.lead_created', 'subject_type' => 'lead', 'state' => 'pending',
         ]);
     }
 

@@ -32,7 +32,7 @@
 | Page/flow | Required special states beyond universal taxonomy |
 | --- | --- |
 | Dashboard/notifications | First-use empty, partial panel failure, unread count reconciliation |
-| Profile/addresses/company | Stale edit, duplicate identity review, inactive company, missing capability, save receipt |
+| Profile/addresses/company | Stale edit, duplicate identity review, inactive/expired membership, explicit capability list, missing-capability warning, save receipt |
 | Orders/detail/tracking | Empty history, payment pending/unknown/reconciled, shipment not booked/carrier delayed, cancellation pending/denied/completed |
 | Quotes/detail | No quotes, approval pending, new revision supersedes viewed revision, accept conflict, conversion stock conflict, converted Order link |
 | Wishlist/reviews | Empty, product retired, review in moderation/rejected; these states remain feature-gated until implemented |
@@ -64,4 +64,3 @@
 - Every state is verified at narrow mobile, wide desktop, keyboard-only, 200% zoom and reduced-motion modes.
 - Tables retain semantic headers; mobile may present labeled cards only when the same fields/actions and reading order remain available.
 - Hover is enhancement only. Destructive/high-impact confirmation is keyboard accessible and states exact object/action without exposing internal IDs.
-

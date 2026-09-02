@@ -9,6 +9,8 @@ use App\Modules\CRM\Application\Services\PublicContactAbuseGuard;
 use App\Modules\CRM\Infrastructure\Persistence\Models\Lead;
 use App\Modules\CRM\Infrastructure\Persistence\Models\PublicContactSubmission;
 use App\Modules\CRM\Support\CrmIdentityNormalizer;
+use App\Modules\Growth\Application\StoreAnalyticsIntent;
+use App\Modules\Growth\Data\AnalyticsEvent;
 use DomainException;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
@@ -21,6 +23,7 @@ final readonly class CapturePublicContact
     public function __construct(
         private CrmIdentityNormalizer $normalizer,
         private PublicContactAbuseGuard $abuseGuard,
+        private StoreAnalyticsIntent $analytics,
     ) {}
 
     public function execute(PublicContactCommand $command): Lead
@@ -72,6 +75,16 @@ final readonly class CapturePublicContact
                     'privacy_accepted_at' => now(),
                     'submitted_at' => now(),
                 ]);
+                $this->analytics->record('crm-lead-created:'.$lead->public_id, new AnalyticsEvent(
+                    'crm-lead-created:'.$lead->public_id,
+                    'crm.lead_created',
+                    'lead',
+                    $lead->public_id,
+                    now()->toDateTimeImmutable(),
+                    true,
+                    ['topic' => $command->topic, 'source' => 'public_contact'],
+                    $command->analyticsConsentPublicId,
+                ));
 
                 return $lead;
             }, 3);

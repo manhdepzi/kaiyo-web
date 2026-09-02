@@ -27,21 +27,22 @@
             <input type="hidden" name="operation_key" value="{{ (string) \Illuminate\Support\Str::ulid() }}">
             <div class="space-y-6">
                 <x-ui.card title="Địa chỉ nhận hàng">
+                    @if ($checkoutAddress !== null)<p class="mb-4 text-sm text-ink-muted">Đã điền từ địa chỉ giao hàng mặc định. Bạn vẫn có thể chỉnh sửa cho riêng đơn hàng này; Order sẽ lưu một snapshot bất biến.</p>@endif
                     <div class="grid gap-4 sm:grid-cols-2">
-                        <x-ui.input name="recipient_name" label="Người nhận" :value="old('recipient_name')" required />
-                        <x-ui.input name="phone" label="Số điện thoại" :value="old('phone')" />
-                        <div class="sm:col-span-2"><x-ui.input name="address_line_1" label="Địa chỉ" :value="old('address_line_1')" required /></div>
-                        <div class="sm:col-span-2"><x-ui.input name="address_line_2" label="Địa chỉ bổ sung" :value="old('address_line_2')" /></div>
-                        <x-ui.input name="locality" label="Quận/Huyện" :value="old('locality')" />
-                        <x-ui.input name="subdivision" label="Tỉnh/Thành phố" :value="old('subdivision')" />
-                        <x-ui.input name="postal_code" label="Mã bưu chính" :value="old('postal_code')" />
-                        <div><label class="block text-sm font-medium" for="country_code">Quốc gia</label><select id="country_code" name="country_code" class="mt-2 min-h-11 w-full rounded-control border border-line bg-surface px-3"><option value="VN">Việt Nam</option></select></div>
+                        <x-ui.input name="recipient_name" label="Người nhận" :value="old('recipient_name', $checkoutAddress['recipient_name'] ?? '')" required />
+                        <x-ui.input name="phone" label="Số điện thoại" :value="old('phone', $checkoutAddress['phone'] ?? '')" />
+                        <div class="sm:col-span-2"><x-ui.input name="address_line_1" label="Địa chỉ" :value="old('address_line_1', $checkoutAddress['address_line_1'] ?? '')" required /></div>
+                        <div class="sm:col-span-2"><x-ui.input name="address_line_2" label="Địa chỉ bổ sung" :value="old('address_line_2', $checkoutAddress['address_line_2'] ?? '')" /></div>
+                        <x-ui.input name="locality" label="Quận/Huyện" :value="old('locality', $checkoutAddress['locality'] ?? '')" />
+                        <x-ui.input name="subdivision" label="Tỉnh/Thành phố" :value="old('subdivision', $checkoutAddress['subdivision'] ?? '')" />
+                        <x-ui.input name="postal_code" label="Mã bưu chính" :value="old('postal_code', $checkoutAddress['postal_code'] ?? '')" />
+                        <div><label class="block text-sm font-medium" for="country_code">Quốc gia</label><select id="country_code" name="country_code" class="mt-2 min-h-11 w-full rounded-control border border-line bg-surface px-3"><option value="VN" @selected(old('country_code', $checkoutAddress['country_code'] ?? 'VN') === 'VN')>Việt Nam</option></select></div>
                     </div>
                 </x-ui.card>
                 <x-ui.card title="Thông tin hóa đơn">
                     <div class="grid gap-4 sm:grid-cols-2">
-                        <x-ui.input name="company_name" label="Tên công ty (nếu có)" :value="old('company_name')" />
-                        <x-ui.input name="tax_code" label="Mã số thuế (nếu có)" :value="old('tax_code')" />
+                        <x-ui.input name="company_name" label="Tên công ty (nếu có)" :value="old('company_name', $checkoutAddress['company_name'] ?? '')" />
+                        <x-ui.input name="tax_code" label="Mã số thuế (nếu có)" :value="old('tax_code', $checkoutAddress['tax_code'] ?? '')" />
                     </div>
                     <label class="mt-4 flex items-start gap-3 text-sm"><input type="checkbox" name="invoice_requested" value="1" @checked(old('invoice_requested')) class="mt-1"> <span>Yêu cầu hóa đơn. Thuế chỉ được tính từ cấu hình Finance đang hiệu lực.</span></label>
                 </x-ui.card>

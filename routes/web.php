@@ -1,8 +1,13 @@
 <?php
 
+use App\Http\Controllers\AccountAddressController;
+use App\Http\Controllers\AccountNotificationPreferenceController;
+use App\Http\Controllers\AccountOrderCancellationController;
 use App\Http\Controllers\AccountOrderController;
 use App\Http\Controllers\AccountPortalController;
+use App\Http\Controllers\AccountProductReviewController;
 use App\Http\Controllers\AccountSecurityController;
+use App\Http\Controllers\AccountWishlistController;
 use App\Http\Controllers\AdminAnalyticsController;
 use App\Http\Controllers\AdminAuditController;
 use App\Http\Controllers\AdminCatalogController;
@@ -10,6 +15,9 @@ use App\Http\Controllers\AdminCmsController;
 use App\Http\Controllers\AdminMerchantController;
 use App\Http\Controllers\AdminOutboxController;
 use App\Http\Controllers\AdminPageController;
+use App\Http\Controllers\AdminReviewController;
+use App\Http\Controllers\AnalyticsAttributionController;
+use App\Http\Controllers\AnalyticsConsentController;
 use App\Http\Controllers\MarkAccountNotificationReadController;
 use App\Http\Controllers\PublicArticleController;
 use App\Http\Controllers\PublicBrandController;
@@ -30,6 +38,7 @@ use App\Http\Controllers\PublicSearchController;
 use App\Http\Controllers\ReadinessController;
 use App\Http\Controllers\RevokeAccountSessionController;
 use App\Http\Controllers\RobotsController;
+use App\Http\Controllers\SalesCancellationController;
 use App\Http\Controllers\SalesCommercialController;
 use App\Http\Controllers\SalesCompanyController;
 use App\Http\Controllers\SalesCompanyShowController;
@@ -77,6 +86,8 @@ Route::post('/bao-gia/{quote}/{action}', [PublicQuotationController::class, 'acc
 Route::view('/gioi-thieu', 'public.about')->name('public.about');
 Route::get('/lien-he', [PublicContactController::class, 'show'])->name('public.contact');
 Route::post('/lien-he', [PublicContactController::class, 'store'])->name('public.contact.store');
+Route::post('/analytics/consent', AnalyticsConsentController::class)->name('analytics.consent.store');
+Route::post('/analytics/attribution', AnalyticsAttributionController::class)->name('analytics.attribution.store');
 
 Route::get('/ready', ReadinessController::class)
     ->withoutMiddleware([
@@ -99,13 +110,29 @@ Route::middleware(['auth', 'verified', 'private.response'])->group(function (): 
     Route::get('/account', [AccountPortalController::class, 'show'])->name('account');
     Route::post('/account/profile', [AccountPortalController::class, 'provision'])->name('account.profile.provision');
     Route::patch('/account/profile', [AccountPortalController::class, 'update'])->name('account.profile.update');
+    Route::post('/account/addresses', [AccountAddressController::class, 'store'])->name('account.addresses.store');
+    Route::patch('/account/addresses/{address}', [AccountAddressController::class, 'update'])
+        ->where('address', '[0-9A-HJKMNP-TV-Z]{26}')->name('account.addresses.update');
+    Route::delete('/account/addresses/{address}', [AccountAddressController::class, 'destroy'])
+        ->where('address', '[0-9A-HJKMNP-TV-Z]{26}')->name('account.addresses.destroy');
+    Route::post('/account/wishlist/{product}', [AccountWishlistController::class, 'store'])
+        ->where('product', '[0-9A-HJKMNP-TV-Z]{26}')->name('account.wishlist.store');
+    Route::delete('/account/wishlist/{product}', [AccountWishlistController::class, 'destroy'])
+        ->where('product', '[0-9A-HJKMNP-TV-Z]{26}')->name('account.wishlist.destroy');
+    Route::post('/account/reviews/{product}', AccountProductReviewController::class)
+        ->where('product', '[0-9A-HJKMNP-TV-Z]{26}')->name('account.reviews.store');
     Route::get('/account/orders/{order}', AccountOrderController::class)
         ->where('order', '[0-9A-HJKMNP-TV-Z]{26}')
         ->name('account.orders.show');
+    Route::post('/account/orders/{order}/cancellation', AccountOrderCancellationController::class)
+        ->where('order', '[0-9A-HJKMNP-TV-Z]{26}')
+        ->name('account.orders.cancellation.store');
     Route::get('/account/security', AccountSecurityController::class)->name('account.security');
     Route::patch('/account/notifications/{notification}/read', MarkAccountNotificationReadController::class)
         ->where('notification', '[0-9A-HJKMNP-TV-Z]{26}')
         ->name('account.notifications.read');
+    Route::patch('/account/notification-preferences', AccountNotificationPreferenceController::class)
+        ->name('account.notification-preferences.update');
     Route::delete('/account/security/sessions/{session}', RevokeAccountSessionController::class)
         ->name('account.security.sessions.destroy');
 });
@@ -132,6 +159,11 @@ Route::middleware(['auth', 'verified', 'private.response', 'staff.2fa', 'staff.n
     ->get('/sales/quotes', [SalesCommercialController::class, 'quotes'])->name('sales.quotes');
 Route::middleware(['auth', 'verified', 'private.response', 'staff.2fa', 'staff.navigation', 'permission:orders.read,orders'])
     ->get('/sales/orders', [SalesCommercialController::class, 'orders'])->name('sales.orders');
+Route::middleware(['auth', 'verified', 'private.response', 'staff.2fa', 'staff.navigation', 'permission:orders.cancel_decide,orders'])->group(function (): void {
+    Route::get('/sales/order-cancellations', [SalesCancellationController::class, 'index'])->name('sales.cancellations');
+    Route::patch('/sales/order-cancellations/{cancellation}', [SalesCancellationController::class, 'decide'])
+        ->where('cancellation', '[0-9A-HJKMNP-TV-Z]{26}')->name('sales.cancellations.decide');
+});
 Route::middleware(['auth', 'verified', 'private.response', 'staff.2fa', 'admin.navigation', 'permission:system.audit.read,system'])
     ->get('/admin/audit', AdminAuditController::class)->name('admin.audit');
 Route::middleware(['auth', 'verified', 'private.response', 'staff.2fa', 'admin.navigation', 'permission:system.audit.read,system'])
@@ -158,6 +190,9 @@ Route::middleware(['auth', 'verified', 'private.response', 'staff.2fa', 'admin.n
         ->where('batch', '[0-9A-HJKMNP-TV-Z]{26}')->name('admin.merchant.retry');
 });
 Route::middleware(['auth', 'verified', 'private.response', 'staff.2fa', 'admin.navigation', 'permission:content.manage,content'])->group(function (): void {
+    Route::get('/admin/reviews', [AdminReviewController::class, 'index'])->name('admin.reviews');
+    Route::patch('/admin/reviews/{review}', [AdminReviewController::class, 'moderate'])
+        ->where('review', '[0-9A-HJKMNP-TV-Z]{26}')->name('admin.reviews.moderate');
     Route::get('/admin/content', [AdminCmsController::class, 'index'])->name('admin.content');
     Route::get('/admin/content/pages', [AdminPageController::class, 'index'])->name('admin.pages');
     Route::post('/admin/content/pages', [AdminPageController::class, 'store'])->name('admin.pages.store');
@@ -205,4 +240,9 @@ Route::middleware(['auth', 'verified', 'private.response', 'staff.2fa', 'staff.n
 Route::middleware(['auth', 'verified', 'private.response', 'staff.2fa', 'staff.navigation'])->group(function (): void {
     Route::get('/sales/companies/{company}', [SalesCompanyShowController::class, 'show'])->where('company', '[0-9A-HJKMNP-TV-Z]{26}')->name('sales.companies.show');
     Route::post('/sales/companies/{company}/members', [SalesCompanyShowController::class, 'addMember'])->where('company', '[0-9A-HJKMNP-TV-Z]{26}')->name('sales.companies.members.store');
+    Route::delete('/sales/companies/{company}/members/{member}/capabilities/{capability}', [SalesCompanyShowController::class, 'revokeCapability'])
+        ->where('company', '[0-9A-HJKMNP-TV-Z]{26}')
+        ->where('member', '[0-9A-HJKMNP-TV-Z]{26}')
+        ->where('capability', '[a-z][a-z0-9_.]{2,99}')
+        ->name('sales.companies.members.capabilities.destroy');
 });

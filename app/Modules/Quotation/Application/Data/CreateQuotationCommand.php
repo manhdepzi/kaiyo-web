@@ -29,6 +29,7 @@ final readonly class CreateQuotationCommand
         public ?string $abuseKey = null,
         public string $paymentMethod = 'cod',
         public bool $invoiceRequested = false,
+        public ?string $analyticsConsentPublicId = null,
     ) {
         if (($customerId === null) === ($guestAccessToken === null) || ($guestAccessToken !== null && strlen($guestAccessToken) < 32)) {
             throw new DomainException('Quotation requires exactly one secure Customer or guest identity.');

@@ -28,3 +28,5 @@ Implement Category hierarchy, Brand, Product, Variant/SKU, typed filterable attr
 - PHPStan/Larastan level 8, Pint and Vite production build pass.
 
 Step 19 subsequently added the approved `catalog_media_references.media_asset_id` foreign key, uniqueness rule and governed Media aggregate; no placeholder media aggregate was introduced during Step 15.
+
+The Step 32 Admin Catalog slice now exposes permission-gated Category, Product, Variant and typed specification management through the existing Catalog actions. Migration `2026_08_29_000022` adds managed detailed-description and bounded SEO fields without changing Product ownership or lifecycle rules.

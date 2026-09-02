@@ -51,6 +51,11 @@
             "@php artisan config:clear --ansi",
             "@php artisan test"
         ],
+        "test:critical": [
+            "@php artisan config:clear --ansi",
+            "@php artisan test --testsuite=Critical"
+        ],
+        "test:mysql-critical": "@php vendor/bin/phpunit --configuration=phpunit.mysql.xml",
         "lint": "@php vendor/bin/pint --test",
         "analyse": "@php vendor/bin/phpstan analyse --memory-limit=1G",
         "quality": [

@@ -101,7 +101,7 @@ final class CrmCoreTest extends TestCase
 
     public function test_membership_alone_grants_nothing_and_explicit_capability_is_required(): void
     {
-        $manager = $this->actorWith('crm.companies.create', 'crm.companies.manage_members');
+        $manager = $this->actorWith('crm.companies.create', 'crm.companies.manage_members', 'orders.read');
         $company = app(CreateCompany::class)->execute($manager, 'Kaiyo Buyer Co.');
         $member = UserAccount::factory()->create();
         $capabilities = app(CompanyCapabilityAuthorizer::class);
@@ -112,6 +112,43 @@ final class CrmCoreTest extends TestCase
         app(ManageCompanyMembership::class)->add($manager, $company, $member, ['orders.read']);
         self::assertTrue($capabilities->allows($member, $company, 'orders.read'));
         self::assertFalse($capabilities->allows($member, $company, 'orders.manage'));
+        $this->assertDatabaseHas('authorization_events', [
+            'event_type' => 'company_capability_granted',
+            'target_type' => 'company',
+            'target_public_id' => $company->public_id,
+            'actor_user_account_id' => $manager->getKey(),
+            'subject_user_account_id' => $member->getKey(),
+        ]);
+        self::assertTrue(app(ManageCompanyMembership::class)->revokeCapability($manager, $company, $member, 'orders.read'));
+        self::assertFalse(app(ManageCompanyMembership::class)->revokeCapability($manager, $company, $member, 'orders.read'));
+        self::assertFalse($capabilities->allows($member, $company, 'orders.read'));
+        self::assertSame(1, \DB::table('authorization_events')->where('event_type', 'company_capability_revoked')->count());
+    }
+
+    public function test_company_capability_delegation_rejects_unheld_and_high_impact_authority(): void
+    {
+        $manager = $this->actorWith('crm.companies.create', 'crm.companies.manage_members');
+        $company = app(CreateCompany::class)->execute($manager, 'Delegation Boundary Co.');
+        $member = UserAccount::factory()->create();
+        $action = app(ManageCompanyMembership::class);
+        $action->add($manager, $company, $member);
+
+        try {
+            $action->add($manager, $company, $member, ['orders.read']);
+            self::fail('An actor must not delegate authority they do not hold persistently.');
+        } catch (AuthorizationException) {
+            self::assertTrue(true);
+        }
+        $this->assertDatabaseCount('company_member_capabilities', 0);
+
+        $this->grant($manager, 'orders.manage', AuthorizationScope::company('orders', (int) $company->getKey()));
+        try {
+            $action->add($manager, $company, $member, ['orders.manage']);
+            self::fail('High-impact authority must use the governed dual-control workflow.');
+        } catch (DomainException) {
+            self::assertTrue(true);
+        }
+        $this->assertDatabaseCount('company_member_capabilities', 0);
     }
 
     public function test_ownership_reassignment_closes_history_and_keeps_one_active_owner(): void

@@ -5,6 +5,22 @@
          colors="true"
 >
     <testsuites>
+        <testsuite name="Critical">
+            <file>tests/Feature/AuthorizationTest.php</file>
+            <file>tests/Feature/InventoryTest.php</file>
+            <file>tests/Feature/CheckoutTest.php</file>
+            <file>tests/Feature/OrderLifecycleTest.php</file>
+            <file>tests/Feature/PaymentTest.php</file>
+            <file>tests/Feature/ShippingTest.php</file>
+            <file>tests/Feature/QuotationTest.php</file>
+            <file>tests/Feature/DispatchOutboxTest.php</file>
+            <file>tests/Feature/MerchantFeedTest.php</file>
+            <file>tests/Feature/AnalyticsDeliveryTest.php</file>
+            <file>tests/Feature/AnalyticsConsentAttributionTest.php</file>
+            <file>tests/Feature/AnalyticsIntentProcessingTest.php</file>
+            <file>tests/Feature/GrowthDeliveryStatusTest.php</file>
+            <file>tests/Feature/FoundationHealthTest.php</file>
+        </testsuite>
         <testsuite name="Unit">
             <directory>tests/Unit</directory>
         </testsuite>

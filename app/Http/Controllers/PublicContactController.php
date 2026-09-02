@@ -42,6 +42,7 @@ final class PublicContactController extends Controller
                 message: (string) $validated['message'],
                 operationKey: (string) $validated['operation_key'],
                 abuseKey: hash('sha256', (string) $request->ip()."\0".(string) $request->userAgent()),
+                analyticsConsentPublicId: $this->analyticsConsent($request),
             ));
         } catch (DomainException $exception) {
             report($exception);
@@ -57,5 +58,12 @@ final class PublicContactController extends Controller
     private function optional(mixed $value): ?string
     {
         return is_string($value) && trim($value) !== '' ? trim($value) : null;
+    }
+
+    private function analyticsConsent(Request $request): ?string
+    {
+        $value = $request->cookie((string) config('analytics.consent_cookie'));
+
+        return is_string($value) && preg_match('/\A[0-9A-HJKMNP-TV-Z]{26}\z/', $value) === 1 ? $value : null;
     }
 }

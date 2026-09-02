@@ -46,10 +46,13 @@ jobs:
         with:
           node-version: '24'
           cache: npm
+      - run: composer validate --strict --no-interaction
       - run: composer install --no-interaction --prefer-dist --no-progress
       - run: npm ci
       - run: cp .env.example .env
       - run: php artisan key:generate
+      - run: php artisan security:source-scan --json
+      - run: composer test:critical
       - run: composer quality
       - name: MySQL critical and concurrency gates
         env:
@@ -59,9 +62,18 @@ jobs:
           DB_DATABASE: kaiyo_test
           DB_USERNAME: kaiyo
           DB_PASSWORD: test-only
+          CACHE_STORE: redis
+          REDIS_CLIENT: predis
+          REDIS_HOST: 127.0.0.1
+          REDIS_PORT: 6379
+          HEALTH_DB_CHECK: true
+          HEALTH_CACHE_CHECK: true
         run: |
-          php vendor/bin/phpunit --configuration=phpunit.mysql.xml
+          composer test:mysql-critical
           php artisan outbox:concurrency-probe
+          php artisan operations:health --json --require-ready --fail-on-dead
+          php artisan performance:baseline --json --require-all
+          php artisan dr:status --json
       - run: npm run build
       - run: npx --yes @redocly/cli@2.47.0 lint docs/api/openapi.yaml --extends=recommended
       - run: composer audit --locked --no-interaction

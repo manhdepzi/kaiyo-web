@@ -47,7 +47,7 @@ Trust boundaries:
 - trusted proxy/host/TLS/cookie/session settings are environment-validated;
 - health endpoint discloses no secrets/internal topology;
 - correlation/redaction middleware and safe exception pages;
-- CSRF enabled, debug off outside local/test, secure headers/CSP baseline;
+- CSRF enabled, debug off outside local/test, enforced `nosniff`, same-origin framing, strict-origin referrer and disabled browser camera/geolocation/microphone permissions; CSP remains a separately tested rollout because it must account for approved media/asset/integration sources;
 - dependency/secret/static scans in CI;
 - MySQL user least privilege and separate production credentials (binding later);
 - file/queue/cache defaults cannot make local disk/Redis sole business truth;
@@ -106,5 +106,8 @@ Trust boundaries:
 | Catalog integrity/permission regression | `PASS — STEP 15; SQLite + MySQL 8.4` |
 | Pricing authority/integrity regression | `PASS — STEP 16; SQLite + MySQL 8.4` |
 | Permission/upload/webhook/security regression | `PENDING FEATURES` |
-| SAST/SCA/secret scan/DAST/manual review | `PENDING CI/RELEASE` |
-| Critical/High unresolved count | `NOT MEASURABLE UNTIL SCANS/REVIEW` |
+| Composer SCA | `PASS — 2026-08-31`; `composer audit` found no security vulnerability advisories |
+| Offline source secret scan | `PASS — 2026-08-31`; `security:source-scan --json` found no likely hard-coded credential and is a CI gate |
+| Production configuration audit | `PASS — EXECUTABLE GATE`; `security:configuration-audit --production` fail-closes debug, HTTPS URL, session/cookie, readiness and queue controls without reporting values; production environment evidence remains pending |
+| SAST/DAST/manual review | `PENDING CI/RELEASE` |
+| Critical/High unresolved count | `NOT MEASURABLE UNTIL SAST/DAST/MANUAL REVIEW` |

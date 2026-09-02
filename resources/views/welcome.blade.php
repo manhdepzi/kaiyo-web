@@ -4,7 +4,7 @@
 @section('meta_description', 'Tra cứu sản phẩm theo tên hoặc SKU, tiếp cận quy trình mua hàng và báo giá minh bạch tại Kaiyo.')
 
 @section('content')
-<section class="bg-canvas" aria-label="Sản phẩm nổi bật">
+<section class="bg-canvas" aria-label="Hero chính">
     <h1 class="sr-only">Tìm đúng sản phẩm. Đi đến quyết định nhanh hơn.</h1>
     <div class="mx-auto max-w-[1600px] px-0 sm:px-5 lg:px-8 lg:py-6">
         <div data-slideshow data-interval="3000" class="relative overflow-hidden bg-surface shadow-panel sm:rounded-panel">
@@ -42,21 +42,21 @@
 </section>
 
 @if (count($featuredProducts) > 0)
-<section class="mx-auto max-w-7xl px-5 py-16 lg:px-8" aria-labelledby="featured-products-title">
+<section class="mx-auto max-w-7xl px-5 py-20 lg:px-8" aria-labelledby="featured-products-title">
     <div class="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
         <div>
-            <p class="text-sm font-semibold uppercase tracking-widest text-brand">Danh mục thực tế</p>
-            <h2 id="featured-products-title" class="mt-3 text-3xl font-bold tracking-tight">Sản phẩm nổi bật</h2>
-            <p class="mt-3 max-w-2xl text-ink-muted">Ảnh và biến thể đang được hiển thị từ dữ liệu Catalog để bạn kiểm tra trực tiếp.</p>
+            <span class="inline-block bg-brand-soft text-brand-dark px-2 py-1 rounded-full text-xs font-semibold uppercase tracking-widest">Danh mục thực tế</span>
+            <h2 id="featured-products-title" class="mt-3 text-4xl font-extrabold tracking-tight">Sản phẩm nổi bật</h2>
+            <p class="mt-3 max-w-2xl text-slate-600">Ảnh và biến thể đang được hiển thị từ dữ liệu Catalog để bạn kiểm tra trực tiếp.</p>
         </div>
         <x-ui.button :href="route('public.search')" variant="secondary" icon="arrow-right" icon-position="end">Xem tất cả</x-ui.button>
     </div>
     <div class="mt-9 grid gap-6 md:grid-cols-3">
         @foreach ($featuredProducts as $product)
-            <article class="group overflow-hidden rounded-panel border border-line bg-surface shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-panel">
-                <a href="{{ route('public.product', $product->slug) }}" class="block aspect-[4/3] overflow-hidden bg-white">
+            <article class="group overflow-hidden rounded-panel bg-surface shadow-md transition duration-300 hover:-translate-y-1 hover:shadow-lg">
+                <a href="{{ route('public.product', $product->slug) }}" class="block aspect-square overflow-hidden bg-slate-50">
                     @if (isset($product->images[0]))
-                        <img src="{{ $product->images[0]->url }}" alt="{{ $product->images[0]->alt }}" width="{{ $product->images[0]->width }}" height="{{ $product->images[0]->height }}" loading="lazy" class="h-full w-full object-contain p-6 transition duration-500 ease-out group-hover:scale-110">
+                        <img src="{{ $product->images[0]->url }}" alt="{{ $product->images[0]->alt }}" width="{{ $product->images[0]->width }}" height="{{ $product->images[0]->height }}" loading="lazy" class="h-full w-full object-cover p-6 transition duration-500 ease-out group-hover:scale-110">
                     @else
                         <span class="grid h-full place-items-center text-sm text-ink-muted">Ảnh đang cập nhật</span>
                     @endif
@@ -64,7 +64,7 @@
                 <div class="p-6">
                     <p class="text-xs font-semibold uppercase tracking-widest text-brand">{{ $product->category->name }}</p>
                     <h3 class="mt-2 text-xl font-semibold"><a class="hover:text-brand" href="{{ route('public.product', $product->slug) }}">{{ $product->name }}</a></h3>
-                    <p class="mt-3 text-sm text-ink-muted">{{ count($product->variants) }} biến thể đang công bố</p>
+                    <p class="mt-3 text-sm text-slate-600">{{ count($product->variants) }} biến thể đang công bố</p>
                 </div>
             </article>
         @endforeach
@@ -72,23 +72,23 @@
 </section>
 @endif
 
-<section class="mx-auto max-w-7xl px-5 py-16 lg:px-8" aria-labelledby="journey-title">
+<section class="mx-auto max-w-7xl px-5 py-20 lg:px-8" aria-labelledby="journey-title">
     <div class="max-w-2xl">
         <p class="text-sm font-semibold uppercase tracking-widest text-brand">Một luồng xuyên suốt</p>
         <h2 id="journey-title" class="mt-3 text-3xl font-bold tracking-tight">Từ tra cứu đến giao nhận</h2>
-        <p class="mt-4 text-ink-muted">Mỗi bước dùng dữ liệu đã được hệ thống xác nhận; giá và tồn kho cuối cùng luôn được kiểm tra lại trước khi cam kết.</p>
+        <p class="mt-4 text-slate-600">Mỗi bước dùng dữ liệu đã được hệ thống xác nhận; giá và tồn kho cuối cùng luôn được kiểm tra lại trước khi cam kết.</p>
     </div>
     <div class="mt-10 grid gap-5 md:grid-cols-3">
-        <x-ui.card title="01 · Khám phá" description="Tìm kiếm theo tên hoặc SKU với bộ lọc rõ ràng và nội dung được render từ máy chủ." />
-        <x-ui.card title="02 · Mua hoặc báo giá" description="Chọn luồng phù hợp cho nhu cầu cá nhân hay doanh nghiệp; mọi thay đổi quan trọng được xác nhận." />
-        <x-ui.card title="03 · Theo dõi" description="Đơn hàng, thanh toán và giao nhận dùng trạng thái có bằng chứng, không suy đoán từ giao diện." />
+        <x-ui.card icon="magnifying-glass" icon-position="start" title="01 · Khám phá" description="Tìm kiếm theo tên hoặc SKU với bộ lọc rõ ràng và nội dung được render từ máy chủ." />
+        <x-ui.card icon="shopping-cart" icon-position="start" title="02 · Mua hoặc báo giá" description="Chọn luồng phù hợp cho nhu cầu cá nhân hay doanh nghiệp; mọi thay đổi quan trọng được xác nhận." />
+        <x-ui.card icon="truck" icon-position="start" title="03 · Theo dõi" description="Đơn hàng, thanh toán và giao nhận dùng trạng thái có bằng chứng, không suy đoán từ giao diện." />
     </div>
 </section>
 
-<section class="border-y border-line bg-surface">
+<section class="border-y border-line bg-surface" aria-labelledby="start-catalog-title">
     <div class="mx-auto flex max-w-7xl flex-col items-start justify-between gap-6 px-5 py-12 sm:flex-row sm:items-center lg:px-8">
         <div>
-            <h2 class="text-2xl font-bold">Bắt đầu với danh mục Kaiyo</h2>
+            <h2 id="start-catalog-title" class="text-2xl font-bold">Bắt đầu với danh mục Kaiyo</h2>
             <p class="mt-2 text-ink-muted">Duyệt toàn bộ sản phẩm đang được công bố trên hệ thống.</p>
         </div>
         <x-ui.button :href="route('public.search')" size="lg" icon="magnifying-glass">Xem sản phẩm</x-ui.button>
